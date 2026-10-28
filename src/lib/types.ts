@@ -31,6 +31,8 @@ export interface Catalogue {
   source: Source;
   fetchedAt: string;
   events: Earthquake[];
+  /** Why the sources before `source` were skipped (empty when fogosapi answered). */
+  errors?: string[];
 }
 
 export const REGIONS: PtRegion[] = ['continente', 'acores', 'madeira'];

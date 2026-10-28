@@ -9,5 +9,7 @@
   "vars": {
     "FOGOS_API_BASE": "https://api.fogos.pt"
   }
-  // Secret (not here): FOGOS_API_KEY — `npx wrangler secret put FOGOS_API_KEY`
+  // Secret (not here, required): FOGOS_API_KEY — the api.fogos.pt token, sent as
+  // FOGOS_API_HEADER (default "X-API-Key"). Dashboard → sismos-pt → Settings →
+  // Variables and Secrets, or `npx wrangler secret put FOGOS_API_KEY`.
 }

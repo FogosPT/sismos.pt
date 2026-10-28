@@ -31,8 +31,10 @@ Configuração inicial (uma vez):
    **Non-production branch deploy command**: `npx wrangler versions upload` · **Root directory**: `/`.
 4. **Production branch**: `main`; ativar **Builds for non-production branches** (previews dos PRs).
 5. Variáveis de build: `NODE_VERSION=22`.
-6. Depois do primeiro deploy, em *Settings → Variables and Secrets*: secret `FOGOS_API_KEY`
-   (ou `npx wrangler secret put FOGOS_API_KEY`).
+6. **Obrigatório**: em *Settings → Variables and Secrets*, secret `FOGOS_API_KEY` com o token da
+   api.fogos.pt (enviado no header `X-API-Key`; outro nome via variável `FOGOS_API_HEADER`).
+   Sem ele o site funciona, mas em modo de fallback (IPMA direto) e com o aviso visível.
+   Diagnóstico: `GET /api/status.json` diz que fonte respondeu e porque é que as anteriores falharam.
 7. *Settings → Domains & Routes → Add → Custom domain*: `sismos.pt` e `www.sismos.pt`.
    Antes, remover o redirect atual para o IPMA (*Rules → Redirect Rules* / *Page Rules* da zona sismos.pt).
 
