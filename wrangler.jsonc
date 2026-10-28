@@ -1,0 +1,13 @@
+{
+  // sismos.pt — Astro SSR on Cloudflare Workers (static assets + worker).
+  // Deployed by Workers Builds on every push to main (see README).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sismos-pt",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "vars": {
+    "FOGOS_API_BASE": "https://api.fogos.pt"
+  }
+  // Secret (not here): FOGOS_API_KEY — `npx wrangler secret put FOGOS_API_KEY`
+}

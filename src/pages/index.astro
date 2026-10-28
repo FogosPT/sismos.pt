@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+import QuakeData from '../components/QuakeData.astro';
+import { getCachedCatalogue } from '../lib/catalogue';
+import { workerEnv } from '../lib/env';
+import {
+  capitalise, depthKnown, depthLong, feltLocal, fmtMag, hm, dayMonth, magTypeLabel, num, placeName, relative, SOURCE_NAME, utcHm,
+} from '../lib/format';
+import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
+import { isPt, summarise } from '../lib/summary';
+import { REGIONS } from '../lib/types';
+
+const catalogue = await getCachedCatalogue(workerEnv);
+const now = Date.parse(catalogue.fetchedAt);
+const pt = catalogue.events.filter(isPt);
+const s = summarise(pt, now);
+const q = s.latest;
+const t = q ? Date.parse(q.time) : 0;
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+
+const description = q
+  ? `Último sismo em Portugal: magnitude ${fmtMag(q.magnitude)}, ${placeName(q.place)} (${REGION_NAME[q.region]}), ${relative(t, now)}. Sismos em tempo real no Continente, Açores e Madeira.`
+  : 'Sismos em tempo real em Portugal Continental, Açores e Madeira.';
+const sources = (q?.sourceNames ?? []).map((x) => SOURCE_NAME[x] ?? x.toUpperCase()).join(' · ');
+---
+
+<Base title="sismos.pt" description={description} nav="agora" catalogue={catalogue} mapRegion={q?.region ?? 'continente'}
+  jsonLd={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'sismos.pt', url: 'https://sismos.pt', inLanguage: 'pt-PT', publisher: { '@type': 'Organization', name: 'VOST Portugal', url: 'https://vost.pt' } }}>
+  <QuakeData events={pt} now={now} />
+
+  <div class="drum" id="drum"><canvas id="drumcv" aria-label="Sismograma das últimas 72 horas" role="img"></canvas></div>
+  <p class="drum-cap">
+    <svg class="ico sm"><use href="#i-direto" /></svg>
+    <span>As últimas 72 horas, desenhadas como num sismógrafo de tambor. Cada linha são 3 horas, a mais recente em baixo. Cada traço vermelho é um sismo. Passe por cima para ver qual.</span>
+  </p>
+
+  {
+    q ? (
+      <section class="now" aria-label="Último sismo">
+        <div class="now-main">
+          <h1>
+            {capitalise(relative(t, now))}, {q.magnitude == null ? 'magnitude por rever' : <>magnitude <span class="m">{fmtMag(q.magnitude)}</span></>}.
+          </h1>
+          <p class="where">
+            {placeName(q.place)}, {REGION_NAME[q.region]}.
+            {depthKnown(q.depth) ? ` A ${num(q.depth, 0)} km de profundidade.` : ' Profundidade não determinada.'}
+            {q.felt
+              ? ` Foi sentido${q.intensity ? ` com intensidade ${q.intensity}` : ''}${q.local ? ` em ${feltLocal(q.local)}` : ''}.`
+              : ' Sem registo de ter sido sentido.'}
+          </p>
+          <p class="ctx">
+            Nos últimos 7 dias foram registados {s.last7} sismos em território português. Em 30 dias, {s.felt30} {s.felt30 === 1 ? 'foi sentido' : 'foram sentidos'} pela população.
+            {s.largest30 && ` O maior teve magnitude ${fmtMag(s.largest30.magnitude)}, a ${dayMonth(Date.parse(s.largest30.time), s.largest30.region)}, ${placeName(s.largest30.place)}.`}
+          </p>
+        </div>
+        <div class="now-side">
+          <a class="now-map" href={`/${q.region}`} aria-label={`Ver o mapa de ${REGION_NAME[q.region]}`}>
+            <svg id="nowmap" role="img" aria-label={`Localização do sismo em ${REGION_NAME[q.region]}`}></svg>
+            <span class="tag">ver mapa →</span>
+          </a>
+          <dl class="facts">
+            <dt><svg class="ico sm"><use href="#i-relogio" /></svg>hora</dt>
+            <dd>{hm(t, q.region)} <small>{TIMEZONE_NAME[q.region]} · {utcHm(t)} UTC</small></dd>
+            <dt><svg class="ico sm"><use href="#i-epicentro" /></svg>magnitude</dt>
+            <dd>{q.magnitude == null ? 'por rever' : <>{fmtMag(q.magnitude)} <small>{magTypeLabel(q.magType)}</small></>}</dd>
+            <dt><svg class="ico sm"><use href="#i-profundidade" /></svg>profundidade</dt>
+            <dd>{depthLong(q.depth)}</dd>
+            <dt><svg class="ico sm"><use href="#i-sentido" /></svg>sentido</dt>
+            <dd>{q.felt ? <>sim{q.intensity && `, intensidade ${q.intensity}`}{q.local && <small> {feltLocal(q.local)}</small>}</> : 'sem registo'}</dd>
+            <dt><svg class="ico sm"><use href="#i-fonte" /></svg>fontes</dt>
+            <dd>{sources}</dd>
+          </dl>
+        </div>
+      </section>
+    ) : (
+      <section class="now"><div class="now-main"><h1>Sem dados neste momento.</h1><p class="where">Nenhuma das fontes respondeu. Tente daqui a pouco.</p></div></section>
+    )
+  }
+
+  <nav class="regions" aria-label="Regiões">
+    <span class="lbl">Escolher região · sismos nos últimos 30 dias</span>
+    {
+      REGIONS.map((r, k) => (
+        <>
+          {k > 0 && <span class="sep" aria-hidden="true">·</span>}
+          <a href={`/${r}`}>{REGION_NAME[r]}<sup>{s.counts[r]}</sup></a>
+        </>
+      ))
+    }
+  </nav>
+</Base>
+
+<script>
+  import '../scripts/seismogram';
+  import '../scripts/maps';
+</script>

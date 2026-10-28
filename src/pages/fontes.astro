@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+export const prerender = true;
+---
+
+<Base title="Fontes" description="De onde vêm os dados do sismos.pt: IPMA, EMSC, USGS, GFZ GEOFON, IGN e ISC, e como são combinados." nav="fontes">
+  <article class="prose">
+    <h1>Fontes</h1>
+    <p>
+      O sismos.pt junta vários catálogos sísmicos num só. Quando várias instituições reportam o mesmo sismo (até 10 segundos e 30 km de diferença, o dobro para
+      sismos de magnitude 5 ou mais), o sismo aparece uma única vez, com a solução da instituição de referência.
+    </p>
+    <h2>IPMA — fonte principal</h2>
+    <p>
+      O <a href="https://www.ipma.pt/pt/geofisica/sismicidade/">Instituto Português do Mar e da Atmosfera</a> é a autoridade sísmica nacional. Em território
+      português, a localização, a magnitude e a informação sobre se o sismo foi sentido (intensidade e localidades) vêm do IPMA. Os dados abertos do IPMA só
+      guardam cerca de 30 dias; o sismos.pt arquiva-os.
+    </p>
+    <h2>EMSC</h2>
+    <p>
+      O <a href="https://www.seismicportal.eu">Centro Sismológico Euro-Mediterrânico</a> publica muito depressa e serve de alternativa quando o IPMA não responde.
+    </p>
+    <h2>USGS, GFZ GEOFON e IGN</h2>
+    <p>
+      O <a href="https://earthquake.usgs.gov">USGS</a> acrescenta, nos sismos maiores, o tensor de momento, os relatos "Did You Feel It?" e o alerta de
+      tsunami. O <a href="https://geofon.gfz.de">GEOFON</a> serve de confirmação e o <a href="https://www.ign.es">IGN</a> cobre o Golfo de Cádis e a fronteira.
+    </p>
+    <h2>ISC — histórico</h2>
+    <p>
+      O histórico desde 1900 vem do boletim revisto do <a href="https://www.isc.ac.uk">International Seismological Centre</a>.
+    </p>
+    <h2>Profundidade "não determinada"</h2>
+    <p>Quando uma rede não consegue calcular a profundidade, fixa-a em 0 km. O sismos.pt mostra esses casos como profundidade não determinada.</p>
+  </article>
+</Base>

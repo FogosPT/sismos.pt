@@ -1,0 +1,13 @@
+---
+// Compact rows for the client scripts (seismogram, maps), embedded in the page.
+import { toRows } from '../lib/summary';
+import type { Earthquake } from '../lib/types';
+
+interface Props {
+  events: Earthquake[];
+  now: number;
+}
+const { events, now } = Astro.props;
+---
+
+<script type="application/json" id="quakes-data" set:html={JSON.stringify({ now, rows: toRows(events) }).replace(/</g, '\\u003c')} />
