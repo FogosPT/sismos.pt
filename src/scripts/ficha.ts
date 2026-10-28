@@ -3,7 +3,7 @@ import { create } from 'd3-selection';
 import { depthKnown, fmtMag, num, radius } from '../lib/format';
 import { latencyLabel } from '../lib/detail';
 import type { PtRegion, Region } from '../lib/types';
-import { COAST, projectionFor, ringPath } from './geo';
+import { COAST, coastFor, projectionAround, projectionFor, ringPath } from './geo';
 import { redrawOn } from './ui';
 
 interface FichaData {
@@ -101,13 +101,16 @@ function drawTimeline(box: HTMLElement, f: FichaData) {
 }
 
 function drawLocator(box: HTMLElement, f: FichaData) {
-  const r = (f.q.r === 'outro' ? 'continente' : f.q.r) as PtRegion;
   const W = Math.min(640, Math.max(300, box.clientWidth || 520));
   const H = Math.round(W * 0.62);
-  const p = projectionFor(r, W, H, 16);
+  // Outside the three regions there is no fixed extent: centre on the epicentre.
+  const outside = f.q.r === 'outro';
+  const r = outside ? coastFor(f.q.lat, f.q.lon) : (f.q.r as PtRegion);
+  const p = outside ? projectionAround(f.q.lat, f.q.lon, W, H, 16, 5) : projectionFor(r, W, H, 16);
   const svg = create('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Localização do epicentro')
     .style('display', 'block').style('width', '100%').style('max-width', `${W}px`).style('height', 'auto');
-  svg.append('path').attr('class', 'land').attr('d', ringPath(COAST[r], p));
+  svg.append('clipPath').attr('id', 'loc-clip').append('rect').attr('width', W).attr('height', H);
+  svg.append('path').attr('class', 'land').attr('clip-path', 'url(#loc-clip)').attr('d', ringPath(COAST[r], p));
   const [x, y] = p([f.q.lon, f.q.lat])!;
   const rr = radius(f.q.m);
   [rr, rr * 0.55].forEach((v) => svg.append('circle').attr('cx', x).attr('cy', y).attr('r', v).style('fill', 'none').style('stroke', 'var(--signal)'));
