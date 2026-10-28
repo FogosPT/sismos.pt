@@ -1,2 +1,4 @@
-# Copy to .dev.vars for `npm run dev` / `wrangler dev`. Optional: fogosapi answers without it.
+# Copy to .dev.vars for `npm run dev` / `wrangler dev`.
+# api.fogos.pt token (https://fogos.pt/pt/api). Required in production (Workers are blocked without it).
 FOGOS_API_KEY=
+# FOGOS_API_HEADER=X-API-Key

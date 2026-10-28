@@ -101,6 +101,35 @@ describe('catalogue fallback chain', () => {
     expect(c.events.length).toBeGreaterThan(0);
   });
 
+  it('records why fogosapi was skipped (WAF / challenge pages)', async () => {
+    const recentIpma = { data: (ipma as any).data.map((d: any) => ({ ...d, time: '2026-10-27T10:00:00' })) };
+    respond({
+      'api.fogos.pt': () => new Response('<html><title>Just a moment...</title></html>', { status: 403, headers: { 'cf-ray': 'abc-LIS' } }),
+      'api.ipma.pt': () => json(recentIpma),
+    });
+    const c = await getCatalogue({ FOGOS_API_KEY: 'k' }, 30, now);
+    expect(c.source).toBe('ipma');
+    expect(c.errors?.[0]).toMatch(/^fogos: api\.fogos\.pt: HTTP 403 \(cf-ray abc-LIS\) — <html><title>Just a moment/);
+  });
+
+  it('reports a 200 that is not JSON', async () => {
+    respond({ 'api.fogos.pt': () => new Response('<html>blocked</html>', { headers: { 'content-type': 'text/html' } }), 'api.ipma.pt': () => json({}, 500), seismicportal: () => json(emsc) });
+    const c = await getCatalogue({ FOGOS_API_KEY: 'k' }, 30, now);
+    expect(c.errors?.[0]).toMatch(/not JSON \(text\/html\)/);
+  });
+
+  it('says when the token is missing', async () => {
+    respond({ 'api.fogos.pt': () => json({ success: true, data: [{ id: 'a', time: '2026-10-28T15:00:00.000Z', region: 'acores', magnitude: 3 }] }) });
+    expect((await getCatalogue({}, 30, now)).errors).toEqual(['fogos: FOGOS_API_KEY not set (api.fogos.pt needs a token)']);
+  });
+
+  it('can send the token in another header', async () => {
+    const f = vi.fn(async () => json({ success: true, data: [] }));
+    vi.stubGlobal('fetch', f);
+    await getCatalogue({ FOGOS_API_KEY: 'k', FOGOS_API_HEADER: 'FPTSC' }, 30, now).catch(() => {});
+    expect((f.mock.calls[0] as any)[1].headers.FPTSC).toBe('k');
+  });
+
   it('sends the API key when configured', async () => {
     const f = vi.fn(async () => json({ success: true, data: [] }));
     vi.stubGlobal('fetch', f);

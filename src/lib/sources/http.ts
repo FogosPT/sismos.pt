@@ -5,8 +5,18 @@ export async function fetchJson<T>(url: string, headers: Record<string, string> 
     headers: { Accept: 'application/json', 'User-Agent': USER_AGENT, ...headers },
     signal: AbortSignal.timeout(timeoutMs),
   });
-  if (!res.ok) throw new Error(`${new URL(url).host}: HTTP ${res.status}`);
-  return (await res.json()) as T;
+  if (!res.ok) {
+    // Keep a hint of the body: a WAF / bot challenge page says what blocked us.
+    const body = (await res.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 160);
+    const ray = res.headers.get('cf-ray');
+    throw new Error(`${new URL(url).host}: HTTP ${res.status}${ray ? ` (cf-ray ${ray})` : ''}${body ? ` — ${body}` : ''}`);
+  }
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`${new URL(url).host}: not JSON (${res.headers.get('content-type') ?? '?'}) — ${text.replace(/\s+/g, ' ').slice(0, 160)}`);
+  }
 }
 
 /** "MW", "ML"… — same spelling as fogosapi (SeismicSource::magType). */

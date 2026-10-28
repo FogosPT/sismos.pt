@@ -2,6 +2,7 @@
 
 sismos.pt — Astro 7 SSR on Cloudflare Workers (`@astrojs/cloudflare`), VOST Portugal. See README for commands and deploy.
 
+- **api.fogos.pt needs a token**: secret `FOGOS_API_KEY`, sent as `X-API-Key` (override header name with `FOGOS_API_HEADER`). Without it production silently falls back to IPMA; `/api/status.json` shows why.
 - **Data**: always through `getCachedCatalogue()` (`src/lib/catalogue.ts`). fogosapi (`v2/seismic/events`) is primary; IPMA → EMSC → USGS are fallbacks and the layout shows a notice when one is used. Never call upstreams per request without the edge cache.
 - **Types** mirror fogosapi's `EarthquakeResource` (`src/lib/types.ts`); region polygons and `magType` normalisation must stay identical to fogosapi (`SeismicRegion`, `SeismicSource::magType`).
 - **Depth 0** means undetermined (fixed depth) — show "não determinada", never "0 km".
