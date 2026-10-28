@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import QuakeData from '../components/QuakeData.astro';
+import { getCachedCatalogue } from '../lib/catalogue';
+import { workerEnv } from '../lib/env';
+import { dayMonth, depthShort, feltLocal, fmtMag, hm, placeName, relative } from '../lib/format';
+import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
+import { regionSummary } from '../lib/summary';
+import { REGIONS, type PtRegion } from '../lib/types';
+
+const r = Astro.params.regiao as PtRegion;
+if (!REGIONS.includes(r)) {
+  return new Response(null, { status: 404 });
+}
+
+const catalogue = await getCachedCatalogue(workerEnv);
+const now = Date.parse(catalogue.fetchedAt);
+const { events, largest, felt } = regionSummary(catalogue.events, r, now);
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+
+const name = REGION_NAME[r];
+const summary =
+  `${events.length} sismos nos últimos 30 dias.` +
+  (largest ? ` O maior teve magnitude ${fmtMag(largest.magnitude)}, a ${dayMonth(Date.parse(largest.time), r)}.` : '') +
+  ` ${felt === 0 ? 'Nenhum foi sentido' : felt === 1 ? '1 foi sentido' : `${felt} foram sentidos`}.`;
+const SHOWN = 12;
+---
+
+<Base title={`Sismos ${r === 'continente' ? 'em Portugal Continental' : r === 'acores' ? 'nos Açores' : 'na Madeira'}`}
+  description={`Sismos ${r === 'continente' ? 'em Portugal Continental' : r === 'acores' ? 'nos Açores' : 'na Madeira'} nos últimos 30 dias: ${summary}`}
+  nav="mapa" catalogue={catalogue} mapRegion={r}>
+  <QuakeData events={events} now={now} />
+
+  <div class="rhead">
+    <h1 class="rswitch">
+      {REGIONS.map((x) => (x === r ? <a href={`/${x}`} aria-current="page">{REGION_NAME[x]}</a> : <a href={`/${x}`}>{REGION_NAME[x]}</a>))}
+    </h1>
+    <p class="rsum"><b>{events.length} sismos</b> {summary.replace(/^\d+ sismos /, '')} Horas em {TIMEZONE_NAME[r]}.</p>
+  </div>
+
+  <div class="mapbox" id="mapbox">
+    <svg id="map" data-region={r} role="img" aria-label={`Mapa de sismos — ${name}`}></svg>
+    <div class="layers">
+      <button type="button" id="layersbtn" aria-expanded="false" aria-controls="layerspanel"><svg class="ico sm"><use href="#i-camadas" /></svg>Camadas</button>
+      <div class="panel" id="layerspanel" hidden>
+        <label><input type="checkbox" id="ly-plates" checked /> Limites de placas</label>
+        <label><input type="checkbox" id="ly-heat" /> Densidade</label>
+        <label><input type="checkbox" id="ly-felt" /> Só sismos sentidos</label>
+        <div class="seg"><span>Cor por</span><button type="button" data-color="age" aria-pressed="true">idade</button><button type="button" data-color="depth" aria-pressed="false">profundidade</button></div>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="zoomhint">arraste e faça zoom</div>
+  </div>
+
+  <ul class="qlist" id="qlist">
+    {
+      events.map((q, i) => {
+        const t = Date.parse(q.time);
+        return (
+          <li class={i >= SHOWN ? 'extra' : undefined}>
+            <div class="row">
+              <span class="qt"><time datetime={q.time}>{dayMonth(t, r)}<br />{hm(t, r)}</time></span>
+              <span class={`qm${q.magnitude == null ? ' prov' : ''}`}>{q.magnitude == null ? 'por rever' : fmtMag(q.magnitude)}</span>
+              <span class="qp">
+                {placeName(q.place)}
+                <small>{q.felt ? `Sentido${q.intensity ? `, intensidade ${q.intensity}` : ''}${q.local ? ` · ${feltLocal(q.local)}` : ''}` : relative(t, now)}</small>
+              </span>
+              <span class="qd">
+                {q.felt && <svg class="ico sm felt" aria-label="sentido"><use href="#i-sentido" /></svg>}
+                <svg class="ico sm" aria-hidden="true"><use href="#i-profundidade" /></svg>{depthShort(q.depth)}
+              </span>
+            </div>
+          </li>
+        );
+      })
+    }
+  </ul>
+  {events.length > SHOWN && <button class="more" id="qmore" type="button">Mostrar os {events.length} sismos</button>}
+  {events.length === 0 && <p class="rsum">Sem sismos registados nesta região nos últimos 30 dias.</p>}
+</Base>
+
+<script>
+  import '../scripts/maps';
+
+  const more = document.getElementById('qmore');
+  more?.addEventListener('click', () => {
+    document.getElementById('qlist')?.classList.add('all');
+    more.remove();
+  });
+</script>

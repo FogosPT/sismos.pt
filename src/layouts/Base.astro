@@ -1,0 +1,111 @@
+---
+import '@fontsource-variable/fraunces/opsz.css';
+import '@fontsource-variable/fraunces/opsz-italic.css';
+import '@fontsource/hanken-grotesk/400.css';
+import '@fontsource/hanken-grotesk/500.css';
+import '@fontsource/hanken-grotesk/600.css';
+import '@fontsource/geist-mono/400.css';
+import '@fontsource/geist-mono/500.css';
+import '../styles/global.css';
+import Icons from '../components/Icons.astro';
+import { dayMonth, hm, SOURCE_NAME } from '../lib/format';
+import type { Catalogue } from '../lib/types';
+
+interface Props {
+  title: string;
+  description: string;
+  nav?: 'agora' | 'mapa' | 'fontes' | 'sobre';
+  catalogue?: Catalogue;
+  /** Region the "Mapa" link opens. */
+  mapRegion?: string;
+  jsonLd?: Record<string, unknown>;
+}
+
+const { title, description, nav, catalogue, mapRegion = 'continente', jsonLd } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const fullTitle = title === 'sismos.pt' ? title : `${title} · sismos.pt`;
+const fallback = catalogue && catalogue.source !== 'fogos';
+const fetched = catalogue ? Date.parse(catalogue.fetchedAt) : null;
+const current = (k: string) => (nav === k ? 'page' : undefined);
+---
+
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#ECEFEC" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#151412" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="sismos.pt" />
+    <meta property="og:locale" content="pt_PT" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@tomahock" />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('sismos-theme');
+        if (t) document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <Icons />
+    <div class="wrap">
+      <header class="top">
+        <div style="display:flex;align-items:center;gap:18px;min-width:0">
+          <a class="brand" href="/" aria-label="sismos.pt, início"><b>sismos<i>.</i>pt</b></a>
+          {
+            catalogue && fetched && (
+              <span class="status">
+                <span class="dot" aria-hidden="true" />
+                <span>{fallback ? `fonte alternativa: ${SOURCE_NAME[catalogue.source]}` : 'ao vivo'}</span>
+                <span class="when">atualizado {dayMonth(fetched, 'continente')}, {hm(fetched, 'continente')}</span>
+              </span>
+            )
+          }
+        </div>
+        <nav class="main" aria-label="Principal">
+          <a href="/" aria-current={current('agora')}>Agora</a>
+          <a href={`/${mapRegion}`} aria-current={current('mapa')}>Mapa</a>
+          <a href="/fontes" class="hide-sm" aria-current={current('fontes')}>Fontes</a>
+          <button class="iconbtn" id="themebtn" type="button" aria-label="Alternar tema claro/escuro"><svg class="ico"><use href="#i-tema" /></svg></button>
+        </nav>
+      </header>
+
+      {
+        fallback && (
+          <p class="notice" role="status">
+            A base de dados do sismos.pt não respondeu. Estes dados vêm diretamente de {SOURCE_NAME[catalogue!.source]} e podem estar incompletos.
+          </p>
+        )
+      }
+
+      <main>
+        <slot />
+      </main>
+
+      <footer class="foot">
+        <div>
+          <div class="vost"><span class="mk">VOST</span><span>Powered by VOST Portugal</span></div>
+          <p class="credits" style="margin:14px 0 0">
+            Made with ♥ by <a href="https://twitter.com/tomahock">Tomahock</a> · Powered by <a href="https://vost.pt">VOST Portugal</a> · Dados:
+            <a href="https://www.ipma.pt">IPMA</a>, <a href="https://www.seismicportal.eu">EMSC</a>, <a href="https://earthquake.usgs.gov">USGS</a>,
+            <a href="https://geofon.gfz.de">GFZ</a>, <a href="https://www.ign.es">IGN</a>, <a href="https://www.isc.ac.uk">ISC</a> · <a href="/sobre">Sobre</a>
+          </p>
+        </div>
+      </footer>
+    </div>
+    <div class="tip" id="tip" role="tooltip"></div>
+    <script>
+      import '../scripts/theme';
+    </script>
+  </body>
+</html>
