@@ -172,12 +172,14 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
 
 /* ---------- wiring ---------- */
 
-const locator = document.getElementById('nowmap') as SVGSVGElement | null;
-if (locator) {
-  // The latest Portuguese earthquake, re-picked whenever live.ts adds one.
+if (document.getElementById('nowmap')) {
+  // The latest Portuguese earthquake, re-picked whenever live.ts adds one. The
+  // SVG is looked up on every render: live.ts swaps the home section (and the
+  // <svg> with it) for the server's fresh markup.
   const render = () => {
+    const locator = document.getElementById('nowmap') as SVGSVGElement | null;
     const latest = store.rows.find((q) => q.r !== 'outro');
-    if (latest) drawLocator(locator, latest, store.rows);
+    if (locator && latest) drawLocator(locator, latest, store.rows);
   };
   render();
   redrawOn(render);

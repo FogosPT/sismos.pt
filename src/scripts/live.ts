@@ -27,6 +27,8 @@ const inScope = (q: Row) => (scopeRegion ? q.r === scopeRegion : q.r !== 'outro'
 let authoritative: Row[] = store.rows.filter((q) => !q.prelim);
 let prelim: Row[] = [];
 let known: Row[] | null = null; // every Portuguese event seen so far (null until the first poll)
+/** In-scope events the poll found but the page does not show yet; retried every poll until rendered. */
+let pending: Row[] = [];
 const toasted: Row[] = [];
 
 /* ---------- header status ---------- */
@@ -100,6 +102,9 @@ async function swapFromServer() {
     if (data?.textContent) {
       const parsed = JSON.parse(data.textContent) as { now: number; rows: Row[] };
       authoritative = parsed.rows;
+      // The page's catalogue is cached separately from /api/latest.json: only
+      // events it actually renders are settled, the rest is retried next poll.
+      pending = pending.filter((p) => !authoritative.some((a) => sameEvent(a, p)));
       setRows(mergeRows(authoritative, prelim), Date.now());
       document.getElementById('quakes-data')!.textContent = data.textContent;
     }
@@ -117,16 +122,24 @@ async function swapFromServer() {
 
 /* ---------- preliminary (EMSC-only) events ---------- */
 
-/** Home: a preliminary event newer than the headline takes the headline over. */
-function showPrelimOnHome(q: Row) {
+/**
+ * Home: a preliminary event newer than the headline takes the headline over;
+ * an EMSC revision of the event already shown rewrites it in place.
+ */
+function showPrelimOnHome(q: Row, revision = false) {
   const section = document.querySelector<HTMLElement>('[data-live="now"]');
   if (!section || page !== 'agora') return;
-  const shown = Date.parse(section.dataset.t ?? '');
-  if (Number.isFinite(shown) && shown >= q.t) return;
+  if (revision) {
+    if (section.dataset.prelimId !== q.id) return;
+  } else {
+    const shown = Date.parse(section.dataset.t ?? '');
+    if (Number.isFinite(shown) && shown >= q.t) return;
+  }
 
   const r = q.r as Region;
   const iso = new Date(q.t).toISOString();
   section.dataset.t = iso;
+  section.dataset.prelimId = q.id;
   const h1 = section.querySelector('h1');
   const where = section.querySelector('.where');
   if (h1) {
@@ -148,20 +161,22 @@ function showPrelimOnHome(q: Row) {
   if (map) map.href = `/${r}`;
 }
 
-/** Region page: a preliminary event of this region goes to the top of the list. */
+/** Region page: a preliminary event of this region goes to the top of the list (or is rewritten on revision). */
 function showPrelimInList(q: Row) {
   const list = document.getElementById('qlist');
   if (!list || q.r !== scopeRegion) return;
   const r = q.r as Region;
   const iso = new Date(q.t).toISOString();
-  const li = document.createElement('li');
+  const existing = [...list.querySelectorAll<HTMLElement>('li.prelim')].find((el) => el.dataset.prelimId === q.id);
+  const li = existing ?? document.createElement('li');
   li.className = 'prelim';
+  li.dataset.prelimId = q.id;
   li.innerHTML =
     `<div class="row"><span class="qt"><time datetime="${iso}">${dayMonth(q.t, r)}<br />${hm(q.t, r)}</time></span>` +
     `<span class="qm">${fmtMag(q.m)}</span>` +
     `<span class="qp">${escapeHtml(placeName(q.p))}<small>preliminar (EMSC) · <span data-rel="${iso}" data-instant>há instantes</span></small></span>` +
     `<span class="qd"><svg class="ico sm" aria-hidden="true"><use href="#i-profundidade" /></svg>${depthShort(q.d)}</span></div>`;
-  list.insertBefore(li, list.firstChild);
+  if (!existing) list.insertBefore(li, list.firstChild);
 }
 
 function addPrelim(q: Row) {
@@ -169,6 +184,9 @@ function addPrelim(q: Row) {
   if (existing) {
     Object.assign(existing, { ...q, id: existing.id }); // EMSC "update": refine, do not re-announce
     setRows(mergeRows(authoritative, prelim), Date.now());
+    showPrelimOnHome(existing, true);
+    showPrelimInList(existing);
+    refreshRelative();
     return;
   }
   if ([...authoritative, ...(known ?? [])].some((k) => sameEvent(k, q))) return;
@@ -199,7 +217,10 @@ async function poll() {
     known = first ? rows : [...known!, ...fresh];
 
     fresh.forEach(toast);
-    if (fresh.some(inScope)) await swapFromServer();
+    fresh.filter(inScope).forEach((q) => {
+      if (!pending.some((p) => sameEvent(p, q))) pending.push(q);
+    });
+    if (pending.length) await swapFromServer();
   } catch {
     status.pollFailed = true;
   }
