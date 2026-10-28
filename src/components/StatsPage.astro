@@ -1,0 +1,156 @@
+---
+import Base from '../layouts/Base.astro';
+import { workerEnv } from '../lib/env';
+import { num, placeName } from '../lib/format';
+import { getCachedStats } from '../lib/stats/source';
+import { headline, pairLabel, parseWindow, REGION_PHRASE, REGION_TITLE, shortDate, sourceLabel, stories, WINDOWS, windowPhrase } from '../lib/stats/text';
+import type { StatsRegion } from '../lib/stats/types';
+import '../styles/stats.css';
+
+interface Props {
+  region: StatsRegion;
+}
+
+const { region } = Astro.props;
+const window = parseWindow(Astro.url.searchParams.get('janela'));
+const result = await getCachedStats(workerEnv, region, window);
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+
+const base = region === 'pt' ? '/estatisticas' : `/estatisticas/${region}`;
+const href = (r: StatsRegion, w = window) => `${r === 'pt' ? '/estatisticas' : `/estatisticas/${r}`}${w === '30d' ? '' : `?janela=${w}`}`;
+const regions: StatsRegion[] = ['pt', 'continente', 'acores', 'madeira'];
+
+const s = result.ok ? result.stats : null;
+const head = s ? headline(s) : null;
+const list = s ? stories(s) : [];
+const long = window !== '30d';
+const title = `Estatísticas sísmicas ${region === 'pt' ? 'de Portugal' : REGION_PHRASE[region].replace(/^n/, 'd')}`;
+const description = head ? `${head.title} ${head.sub}` : `Estatísticas dos sismos ${REGION_PHRASE[region]}: Gutenberg-Richter, energia libertada, profundidade e réplicas.`;
+const seq = s?.sequences ?? [];
+const sq = s?.sourceQuality;
+---
+
+<Base title={title} description={description} nav="estatisticas" mapRegion={region === 'pt' ? 'continente' : region}>
+  {s && <script type="application/json" id="stats-data" set:html={JSON.stringify(s).replace(/</g, '\\u003c')} />}
+
+  <div class="shead">
+    <h1>{head ? head.title : `Estatísticas ${REGION_PHRASE[region]}`}</h1>
+    {head?.sub && <p>{head.sub}</p>}
+
+    <nav class="sswitch" aria-label="Região">
+      {regions.map((r) => <a href={href(r)} aria-current={r === region ? 'page' : undefined}>{REGION_TITLE[r]}</a>)}
+    </nav>
+    <nav class="sswitch swin" aria-label="Período">
+      {WINDOWS.map((w) => <a href={href(region, w.key)} aria-current={w.key === window ? 'page' : undefined}>{w.label}</a>)}
+    </nav>
+  </div>
+
+  {
+    !s && (
+      <p class="notice" role="status">
+        {result.ok === false && result.reason === 'not_computed'
+          ? 'As estatísticas deste período ainda estão a ser calculadas. Volte daqui a uma hora.'
+          : 'As estatísticas não estão disponíveis neste momento. Tente daqui a pouco.'}
+      </p>
+    )
+  }
+
+  {
+    list.map((st) => (
+      <article class="story" id={st.id}>
+        <div>
+          <p class="say" set:html={st.say} />
+          {st.sub && <p class="sub">{st.sub}</p>}
+          <details class="dis">
+            <summary>Ver como se calcula</summary>
+            <div class="body">{st.how.map((p) => <p>{p}</p>)}</div>
+          </details>
+        </div>
+        {st.id === 'sequencias' ? (
+          <div class="chart scroll-x">
+            <table class="tiny seq">
+              <thead>
+                <tr><th>sismo principal</th><th>réplicas</th><th>maior réplica</th><th>duração</th><th>Omori p</th></tr>
+              </thead>
+              <tbody>
+                {seq.map((q) => (
+                  <tr>
+                    <td class="l">M{num(q.mainshock.magnitude ?? 0, 1)} · {shortDate(q.mainshock.time, region, long)}<small>{placeName(q.mainshock.place)}</small></td>
+                    <td>{num(q.aftershocks, 0)}</td>
+                    <td>M{num(q.largestAftershock, 1)}</td>
+                    <td>{q.durationDays < 1 ? '< 1 dia' : `${num(q.durationDays, 0)} dias`}</td>
+                    <td>{q.omoriP != null ? num(q.omoriP, 2) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : st.id === 'fontes' && sq ? (
+          <div class="chart scroll-x">
+            {Object.keys(sq.magnitudeDifference).length > 0 && (
+              <table class="tiny">
+                <caption>diferença de magnitude</caption>
+                <thead><tr><th class="l">fontes</th><th>sismos</th><th>mediana</th><th>média</th></tr></thead>
+                <tbody>
+                  {Object.entries(sq.magnitudeDifference).map(([k, v]) => (
+                    <tr><td class="l">{pairLabel(k)}</td><td>{num(v.n, 0)}</td><td>{v.median > 0 ? '+' : ''}{num(v.median, 2)}</td><td>{v.mean > 0 ? '+' : ''}{num(v.mean, 2)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {Object.keys(sq.latencyMinutes).length > 0 && (
+              <table class="tiny">
+                <caption>tempo até chegar ao sismos.pt</caption>
+                <thead><tr><th class="l">fonte</th><th>sismos</th><th>mediana</th><th>90% em menos de</th></tr></thead>
+                <tbody>
+                  {Object.entries(sq.latencyMinutes).map(([k, v]) => (
+                    <tr><td class="l">{sourceLabel(k)}</td><td>{num(v.n, 0)}</td><td>{num(v.median, 0)} min</td><td>{num(v.p90, 0)} min</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        ) : (
+          <div class="chart" id={`c-${st.id}`} />
+        )}
+      </article>
+    ))
+  }
+
+  {
+    s && s.top.length > 0 && (window === '10y' || window === 'all' || window === '1y') && (
+      <article class="story" id="maiores">
+        <div>
+          <p class="say">Os maiores sismos {REGION_PHRASE[region]} {windowPhrase(window, s.from)}.</p>
+          <p class="sub">Magnitude da fonte de referência de cada sismo; no histórico mais antigo, do ISC.</p>
+        </div>
+        <div class="chart scroll-x">
+          <table class="tiny seq">
+            <thead><tr><th>data</th><th>magnitude</th><th class="l">local</th><th>profundidade</th></tr></thead>
+            <tbody>
+              {s.top.map((q) => (
+                <tr>
+                  <td>{shortDate(q.time, region, true)}</td>
+                  <td>M{num(q.magnitude ?? 0, 1)}</td>
+                  <td class="l">{placeName(q.place)}</td>
+                  <td>{q.depth != null && q.depth > 0 ? `${num(q.depth, 0)} km` : 'não determinada'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    )
+  }
+
+  {
+    result.ok && result.computedAt && (
+      <p class="computed">Calculado a partir do catálogo do sismos.pt em {shortDate(result.computedAt, 'pt', true)}. <a href={`${base}${window === '30d' ? '' : `?janela=${window}`}#gr`}>Ligação para esta vista</a>.</p>
+    )
+  }
+</Base>
+
+<script>
+  import '../scripts/stats-charts';
+</script>
