@@ -26,6 +26,32 @@ export interface Earthquake {
   updated: string | null;
 }
 
+/** One catalogue's report of an earthquake (fogosapi `sources.{name}`). */
+export interface SourceReport {
+  id: string;
+  time: string;
+  lat: number;
+  lon: number;
+  depth: number | null;
+  magnitude: number | null;
+  magType: string | null;
+  place: string | null;
+  felt: boolean | null;
+  intensity: string | null;
+  local: string | null;
+  url: string | null;
+  updatedAt: string | null;
+  /** When fogosapi first saw it (latency only meaningful if close to `time`). */
+  firstSeenAt?: string | null;
+  extra?: Record<string, unknown>;
+}
+
+export interface EarthquakeDetail extends Earthquake {
+  sources: Record<string, SourceReport>;
+  aftershocks: { window: { days: number; km: number } | null; count: number; data: Earthquake[] };
+  nearbyHistory: Earthquake[];
+}
+
 export interface Catalogue {
   /** Where the data came from: fogosapi normally, a fallback otherwise. */
   source: Source;
