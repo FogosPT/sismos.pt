@@ -193,7 +193,7 @@ main{display:block; animation:fadein .5s ease both}
 .xsec text{font-family:var(--mono); font-size:11px; fill:var(--muted)}
 .xsec .lab{font-family:var(--sans); font-size:12px; fill:var(--ink-2)}
 .xsec .hyl{font-family:var(--serif); font-weight:380; font-size:19px; fill:var(--ink)}
-.fsec{display:grid; grid-template-columns:minmax(0,15rem) minmax(0,1fr); gap:20px clamp(24px,5vw,80px); padding-block:clamp(40px,8vh,90px); border-top:1px solid var(--rule)}
+.fsec{display:grid; align-items:start; grid-template-columns:minmax(0,15rem) minmax(0,1fr); gap:20px clamp(24px,5vw,80px); padding-block:clamp(40px,8vh,90px); border-top:1px solid var(--rule)}
 @media (max-width:760px){.fsec{grid-template-columns:1fr}}
 .fsec h2{font-family:var(--sans); font-weight:500; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:6px 0 0; display:flex; gap:10px; align-items:center}
 .fsec h2 .ico{color:var(--ink-2)}
@@ -267,3 +267,30 @@ footer.foot{border-top:1px solid var(--rule); margin-top:clamp(40px,8vh,80px); p
 .qlist li.extra{display:none}
 .qlist.all li.extra{display:block}
 @media (max-width:640px){.qlist a, .qlist .row{grid-template-columns:4.6em 3.6em 1fr} .qlist .qd{grid-column:3}}
+
+/* tempo real */
+.status[data-live="off"] .dot{background:var(--muted); animation:none}
+.status[data-live="off"] [data-live-label]{color:var(--muted)}
+.toasts{position:fixed; left:clamp(16px,4vw,56px); bottom:20px; z-index:20; display:flex; flex-direction:column; gap:8px; max-width:min(560px,calc(100vw - 32px))}
+.toast{display:flex; align-items:center; gap:14px; background:var(--bg); color:var(--ink); border:1px solid var(--rule); border-left:2px solid var(--signal); border-radius:6px; padding:9px 12px; font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums}
+.toast a{text-decoration:none; color:inherit}
+.toast a:hover{color:var(--signal)}
+.toast button{appearance:none; background:none; border:0; color:var(--muted); font:inherit; font-size:15px; line-height:1; cursor:pointer; padding:2px 4px; margin-left:auto}
+.toast button:hover{color:var(--ink)}
+@media (prefers-reduced-motion: no-preference){ .toast{animation:toastin .4s ease both} }
+@keyframes toastin{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+.qlist li.prelim .qm{color:var(--signal)}
+/* ficha: tabela das fontes */
+.srct{width:100%; border-collapse:collapse; font-size:14px}
+.srct th, .srct td{text-align:left; padding:10px 14px 10px 0; border-bottom:1px solid var(--rule); vertical-align:baseline}
+.srct thead th{font-family:var(--sans); font-weight:500; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.srct tbody th{font-weight:600}
+.srct tbody th a{text-decoration-color:var(--rule); text-underline-offset:.18em}
+.srct td{font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.srct small{color:var(--muted); font-weight:400; font-family:var(--mono); font-size:11.5px}
+.srct tr.pref td, .srct tr.pref th{color:var(--ink)}
+.tl{margin-top:28px}
+.lead{margin:0 0 14px; color:var(--ink-2); max-width:58ch}
+.near .mono{font-family:var(--mono); font-size:12.5px; color:var(--muted); min-width:7.5em}
+.fwhen time{font:inherit}
+@media (max-width:640px){.srct thead{display:none} .srct tr{display:grid; grid-template-columns:1fr 1fr; padding-block:8px; border-bottom:1px solid var(--rule)} .srct th, .srct td{border:0; padding:2px 0}}

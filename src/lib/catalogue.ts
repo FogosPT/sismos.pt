@@ -1,3 +1,4 @@
+import { edgeCached } from './cache';
 import { fromEmsc, fromUsgs } from './sources/fdsn';
 import { fromFogos } from './sources/fogos';
 import { fromIpma } from './sources/ipma';
@@ -9,6 +10,8 @@ export interface CatalogueEnv {
   /** Header that carries the token; default X-API-Key. */
   FOGOS_API_HEADER?: string;
 }
+
+export const fogosOptions = (env: CatalogueEnv) => ({ base: env.FOGOS_API_BASE, apiKey: env.FOGOS_API_KEY, apiHeader: env.FOGOS_API_HEADER });
 
 /** How long a catalogue is reused at the edge before asking again. */
 export const CACHE_SECONDS = 60;
@@ -23,7 +26,7 @@ export const CACHE_SECONDS = 60;
 export async function getCatalogue(env: CatalogueEnv, days = 30, now = new Date()): Promise<Catalogue> {
   const from = new Date(now.getTime() - days * 864e5);
   const chain: [Source, () => Promise<Earthquake[]>][] = [
-    ['fogos', () => fromFogos(from, { base: env.FOGOS_API_BASE, apiKey: env.FOGOS_API_KEY, apiHeader: env.FOGOS_API_HEADER })],
+    ['fogos', () => fromFogos(from, fogosOptions(env))],
     ['ipma', () => fromIpma()],
     ['emsc', () => fromEmsc(from)],
     ['usgs', () => fromUsgs(from)],
@@ -52,24 +55,9 @@ export async function getCatalogue(env: CatalogueEnv, days = 30, now = new Date(
 
 /**
  * Edge-cached getCatalogue: one upstream call per minute per data centre,
- * however many readers. Falls back to a direct call where `caches` does not
- * exist (tests, Node).
+ * however many readers. Fallback data is kept for less time so fogosapi is
+ * retried soon.
  */
-export async function getCachedCatalogue(env: CatalogueEnv, days = 30): Promise<Catalogue> {
-  const cache = (globalThis as any).caches?.default as Cache | undefined;
-  const key = new Request(`https://cache.sismos.pt/catalogue/${days}`);
-  if (cache) {
-    const hit = await cache.match(key);
-    if (hit) return (await hit.json()) as Catalogue;
-  }
-
-  const catalogue = await getCatalogue(env, days);
-  if (cache && catalogue.events.length) {
-    // Fallback data is cached for less time so fogosapi is retried soon.
-    const ttl = catalogue.source === 'fogos' ? CACHE_SECONDS : 20;
-    await cache.put(key, new Response(JSON.stringify(catalogue), {
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': `max-age=${ttl}` },
-    }));
-  }
-  return catalogue;
+export function getCachedCatalogue(env: CatalogueEnv, days = 30): Promise<Catalogue> {
+  return edgeCached(`catalogue/${days}`, (c) => (c.source === 'fogos' ? CACHE_SECONDS : 20), () => getCatalogue(env, days), (c) => c.events.length > 0);
 }
