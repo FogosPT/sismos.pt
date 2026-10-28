@@ -59,9 +59,13 @@ export const TIMEZONE_NAME: Record<Region, string> = {
   outro: 'hora de Lisboa',
 };
 
-/** Map extents [minLon, minLat, maxLon, maxLat]. */
+/**
+ * Initial map extents [minLon, minLat, maxLon, maxLat]. The mainland one
+ * reaches south-west past the Gorringe bank / Gulf of Cádiz (where most
+ * events are) so they sit clear of the legend in the bottom-left corner.
+ */
 export const EXTENT: Record<PtRegion, [number, number, number, number]> = {
-  continente: [-11.6, 36.2, -6.0, 42.25],
+  continente: [-13.4, 34.9, -5.8, 42.3],
   acores: [-31.5, 36.75, -24.8, 39.95],
   madeira: [-17.4, 29.95, -15.75, 33.2],
 };
