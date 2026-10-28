@@ -20,6 +20,10 @@ import { setRows, store } from './store';
  */
 
 const POLL_MS = 60_000;
+/** Only events this recent are announced; older ones arriving late (revisions, backfill) are not news. */
+const TOAST_MAX_AGE_MS = 60 * 60_000;
+/** Pages that embed earthquakes (#quakes-data) can be refreshed in place; the others (stats, about…) only toast. */
+const hasRows = Boolean(document.getElementById('quakes-data'));
 const page = document.body.dataset.page ?? '';
 const scopeRegion = (document.getElementById('map') as SVGSVGElement | null)?.dataset.region;
 const inScope = (q: Row) => (scopeRegion ? q.r === scopeRegion : q.r !== 'outro');
@@ -51,7 +55,7 @@ function renderStatus() {
 /* ---------- toasts ---------- */
 
 function toast(q: Row) {
-  if (toasted.some((t) => sameEvent(t, q))) return;
+  if (Date.now() - q.t > TOAST_MAX_AGE_MS || toasted.some((t) => sameEvent(t, q))) return;
   toasted.push(q);
   const box = document.getElementById('toasts');
   if (!box) return;
@@ -219,14 +223,18 @@ async function poll() {
 
     const rows = toRows(catalogue.events).filter((q) => q.r !== 'outro');
     const first = known === null;
-    const fresh = first ? unseen(authoritative, rows.filter(inScope)) : unseen(known!, rows);
+    // First poll: the baseline. Only what the page itself is missing counts as
+    // new, and only on pages that render earthquakes at all.
+    const fresh = first ? (hasRows ? unseen(authoritative, rows.filter(inScope)) : []) : unseen(known!, rows);
     known = first ? rows : [...known!, ...fresh];
 
     fresh.forEach(toast);
-    fresh.filter(inScope).forEach((q) => {
-      if (!pending.some((p) => sameEvent(p, q))) pending.push(q);
-    });
-    if (pending.length) await swapFromServer();
+    if (hasRows) {
+      fresh.filter(inScope).forEach((q) => {
+        if (!pending.some((p) => sameEvent(p, q))) pending.push(q);
+      });
+      if (pending.length) await swapFromServer();
+    }
   } catch {
     status.pollFailed = true;
   }
