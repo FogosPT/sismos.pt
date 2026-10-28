@@ -2,7 +2,8 @@ import { max as d3max, range } from 'd3-array';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { scaleBand, scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import { pointer, select, type Selection } from 'd3-selection';
-import { area, curveStepAfter, line } from 'd3-shape';
+import { area, curveLinear, curveStepAfter, line } from 'd3-shape';
+import { bucketEnd, bucketLabel, isBucket } from '../lib/stats/buckets';
 import { num } from '../lib/format';
 import type { SeismicStats } from '../lib/stats/types';
 import { hideTip, redrawOn, showTip } from './ui';
@@ -103,7 +104,16 @@ function drawEnergy(s: SeismicStats) {
   const unit = energyUnit(s.energy.totalJ);
   const t0 = s.from ? new Date(s.from) : parseT(pts[0].t);
   const t1 = new Date(s.to);
-  const series: [Date, number][] = [[t0, 0], ...pts.map((p) => [parseT(p.t), p.energyJ / unit.div] as [Date, number]), [t1, s.energy.totalJ / unit.div]];
+  // Long windows (10y, all) come as month/year totals: each is placed at the
+  // end of its bucket and joined linearly, since when inside the bucket the
+  // energy was released is unknown. Short windows are per earthquake: exact steps.
+  const bucketed = isBucket(pts[0].t);
+  const clampT = (d: Date) => new Date(Math.min(t1.getTime(), Math.max(t0.getTime(), d.getTime())));
+  const series: [Date, number][] = bucketed
+    ? [[t0, 0], ...pts.map((p) => [clampT(bucketEnd(p.t)), p.energyJ / unit.div] as [Date, number])]
+    : [[t0, 0], ...pts.map((p) => [parseT(p.t), p.energyJ / unit.div] as [Date, number]), [t1, s.energy.totalJ / unit.div]];
+  const labels = bucketed ? pts.map((p) => bucketLabel(p.t)) : [];
+  const curve = bucketed ? curveLinear : curveStepAfter;
   const x = scaleTime().domain([t0, t1]).range([m.l, W - m.r]);
   const y = scaleLinear().domain([0, s.energy.totalJ / unit.div]).nice().range([H - m.b, m.t]);
   gridY(svg, y, y.ticks(4), m.l, W - m.r);
@@ -116,14 +126,15 @@ function drawEnergy(s: SeismicStats) {
 
   const xa = (d: [Date, number]) => x(d[0]);
   const ya = (d: [Date, number]) => y(d[1]);
-  svg.append('path').attr('d', area<[Date, number]>().curve(curveStepAfter).x(xa).y0(y(0)).y1(ya)(series)).style('fill', 'var(--signal-soft)');
-  svg.append('path').attr('d', line<[Date, number]>().curve(curveStepAfter).x(xa).y(ya)(series)).style('fill', 'none').style('stroke', 'var(--signal)').style('stroke-width', 2);
+  svg.append('path').attr('d', area<[Date, number]>().curve(curve).x(xa).y0(y(0)).y1(ya)(series)).style('fill', 'var(--signal-soft)');
+  svg.append('path').attr('d', line<[Date, number]>().curve(curve).x(xa).y(ya)(series)).style('fill', 'none').style('stroke', 'var(--signal)').style('stroke-width', 2);
 
   const maxQ = s.magnitude.max;
   if (maxQ?.magnitude != null) {
     const tm = new Date(maxQ.time);
+    // Bucketed: mark the end of the bucket that contains it (the curve only knows totals there).
     const after = series.find((p) => p[0] >= tm) ?? series[series.length - 1];
-    const cx = x(tm);
+    const cx = x(bucketed ? after[0] : tm);
     const cy = y(after[1]);
     svg.append('circle').attr('cx', cx).attr('cy', cy).attr('r', 4.5).style('fill', 'var(--signal)').style('stroke', 'var(--bg)').style('stroke-width', 2);
     const left = cx > W * 0.6;
@@ -136,9 +147,16 @@ function drawEnergy(s: SeismicStats) {
       const [mx] = pointer(e, svg.node());
       const t = x.invert(mx);
       let v = 0;
-      for (const p of series) if (p[0] <= t) v = p[1];
+      let k = -1;
+      series.forEach((p, i) => {
+        if (p[0] <= t) {
+          v = p[1];
+          k = i;
+        }
+      });
       cross.style('display', null).attr('x1', mx).attr('x2', mx);
-      showTip(`<b>${num(v, v < 10 ? 1 : 0)}</b>${unit.label} libertados<span class="mono">até ${t.toLocaleDateString('pt-PT')}</span>`, e.clientX, e.clientY);
+      const when = bucketed ? (k > 0 ? labels[k - 1] : 'no início do período') : `até ${t.toLocaleDateString('pt-PT')}`;
+      showTip(`<b>${num(v, v < 10 ? 1 : 0)}</b>${unit.label} libertados<span class="mono">${when}</span>`, e.clientX, e.clientY);
     })
     .on('mouseleave', () => {
       cross.style('display', 'none');

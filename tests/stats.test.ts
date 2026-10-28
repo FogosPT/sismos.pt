@@ -107,3 +107,23 @@ describe('stories', () => {
     expect(storySequences(evil)!.say).not.toContain('<script>');
   });
 });
+
+import { bucketEnd, bucketLabel, isBucket } from '../src/lib/stats/buckets';
+
+describe('energy buckets (10y / all windows)', () => {
+  it('places a bucket total at the end of the bucket, never before its events', () => {
+    // The 28 Feb 1969 M7.8 is inside the "1969" bucket: its energy must not show before 1 Jan 1970.
+    expect(bucketEnd('1969').toISOString()).toBe('1970-01-01T00:00:00.000Z');
+    expect(bucketEnd('1969').getTime()).toBeGreaterThan(Date.parse('1969-02-28T02:40:33Z'));
+    expect(bucketEnd('2024-12').toISOString()).toBe('2025-01-01T00:00:00.000Z');
+    expect(bucketEnd('2024-03').toISOString()).toBe('2024-04-01T00:00:00.000Z');
+  });
+
+  it('labels and recognises buckets', () => {
+    expect(isBucket('1969')).toBe(true);
+    expect(isBucket('2024-03')).toBe(true);
+    expect(isBucket('2026-10-20T18:07:19Z')).toBe(false);
+    expect(bucketLabel('1969')).toBe('até ao fim de 1969');
+    expect(bucketLabel('2024-03')).toBe('até ao fim de março de 2024');
+  });
+});
