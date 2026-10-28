@@ -1,26 +1,14 @@
-import { geoMercator, type GeoProjection } from 'd3-geo';
+import type { GeoProjection } from 'd3-geo';
 import { select, type Selection } from 'd3-selection';
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
-import geo from '../data/geo.json';
 import { radius } from '../lib/format';
-import { EXTENT, PLACES } from '../lib/region';
+import { PLACES } from '../lib/region';
 import type { Row } from '../lib/summary';
 import type { PtRegion } from '../lib/types';
+import { BORDERS, COAST, PLATES, projectionFor, ringPath } from './geo';
 import { hideTip, readRows, redrawOn, rowTip, showTip } from './ui';
 
 const DAY = 864e5;
-type Ring = [number, number][];
-const COAST = geo.COAST as unknown as Record<PtRegion, Ring[]>;
-const BORDERS = geo.BORDERS as unknown as Ring[];
-const PLATES = geo.PLATES as unknown as Ring[];
-
-function projectionFor(r: PtRegion, w: number, h: number, pad: number): GeoProjection {
-  const b = EXTENT[r];
-  return geoMercator().fitExtent([[pad, pad], [w - pad, h - pad]], { type: 'MultiPoint', coordinates: [[b[0], b[1]], [b[2], b[3]]] });
-}
-
-const ringPath = (rings: Ring[], p: GeoProjection, close = true) =>
-  rings.map((r) => 'M' + r.map((c) => p(c)!.map((v) => v.toFixed(1)).join(',')).join('L') + (close ? 'Z' : '')).join('');
 
 function graticule(g: Selection<SVGGElement, unknown, null, undefined>, p: GeoProjection, w: number, h: number, bleed = 0) {
   const [x0, y1] = p.invert!([0, 0])!;
@@ -129,7 +117,8 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
     if (d === latest && now - d.t < 5 * DAY) s.append('circle').attr('class', 'pulse').attr('r', rr);
     s.append('circle').attr('class', 'q-hit').attr('r', Math.max(rr, 10));
   });
-  nodes.on('mousemove', (e: MouseEvent, d) => showTip(rowTip(d), e.clientX, e.clientY)).on('mouseleave', hideTip);
+  nodes.on('mousemove', (e: MouseEvent, d) => showTip(rowTip(d), e.clientX, e.clientY)).on('mouseleave', hideTip)
+    .on('click', (_e: MouseEvent, d) => { if (d.u) location.href = d.u; });
 
   // Zoom keeps markers and labels at constant size.
   const behaviour = zoom<SVGSVGElement, unknown>().scaleExtent([1, 12]).translateExtent([[-w * 0.2, -h * 0.2], [w * 1.2, h * 1.2]]).on('zoom', (e) => {

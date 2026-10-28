@@ -142,6 +142,11 @@ if (cv) {
     const h = find(e);
     if (h) showTip(rowTip(h.q), e.clientX, e.clientY);
     else hideTip();
+    cv.style.cursor = h?.q.u ? 'pointer' : 'crosshair';
   });
   cv.addEventListener('mouseleave', hideTip);
+  cv.addEventListener('click', (e) => {
+    const h = find(e);
+    if (h?.q.u) location.href = h.q.u;
+  });
 }

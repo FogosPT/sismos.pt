@@ -42,7 +42,8 @@ Deploy manual (emergência): `npx wrangler login && npm run deploy`.
 
 ## Estrutura
 
-- `src/pages/` — `index` (agora), `[regiao]` (continente, açores, madeira), `fontes`, `sobre`, `api/latest.json`.
+- `src/pages/` — `index` (agora), `[regiao]` (continente, açores, madeira), `sismo/[id]-[slug]` (ficha), `fontes`, `sobre`,
+  `og/[id].png` (imagens de partilha), `sitemap.xml` (+ `sitemap-paginas.xml`, `sitemap-sismos-N.xml`), `rss.xml`, `api/*`.
 - `src/lib/catalogue.ts` — fogosapi com fallback e cache no edge (60 s).
 - `src/lib/sources/` — normalizadores de fogosapi, IPMA, EMSC e USGS.
 - `src/scripts/` — sismógrafo (canvas) e mapas (d3-geo), no cliente.
