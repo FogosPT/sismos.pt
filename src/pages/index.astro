@@ -37,10 +37,10 @@ const sources = (q?.sourceNames ?? []).map((x) => SOURCE_NAME[x] ?? x.toUpperCas
 
   {
     q ? (
-      <section class="now" aria-label="Último sismo">
+      <section class="now" aria-label="Último sismo" data-live="now" data-t={q.time}>
         <div class="now-main">
           <h1>
-            {capitalise(relative(t, now))}, {q.magnitude == null ? 'magnitude por rever' : <>magnitude <span class="m">{fmtMag(q.magnitude)}</span></>}.
+            <span data-rel={q.time} data-cap>{capitalise(relative(t, now))}</span>, {q.magnitude == null ? 'magnitude por rever' : <>magnitude <span class="m">{fmtMag(q.magnitude)}</span></>}.
           </h1>
           <p class="where">
             {placeName(q.place)}, {REGION_NAME[q.region]}.
@@ -78,7 +78,7 @@ const sources = (q?.sourceNames ?? []).map((x) => SOURCE_NAME[x] ?? x.toUpperCas
     )
   }
 
-  <nav class="regions" aria-label="Regiões">
+  <nav class="regions" aria-label="Regiões" data-live="regions">
     <span class="lbl">Escolher região · sismos nos últimos 30 dias</span>
     {
       REGIONS.map((r, k) => (

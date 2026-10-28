@@ -6,7 +6,8 @@ import { radius } from '../lib/format';
 import { EXTENT, PLACES } from '../lib/region';
 import type { Row } from '../lib/summary';
 import type { PtRegion } from '../lib/types';
-import { hideTip, readRows, redrawOn, rowTip, showTip } from './ui';
+import { onRows, store } from './store';
+import { hideTip, redrawOn, rowTip, showTip } from './ui';
 
 const DAY = 864e5;
 type Ring = [number, number][];
@@ -171,24 +172,25 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
 
 /* ---------- wiring ---------- */
 
-const { now, rows } = readRows('quakes-data');
-
 const locator = document.getElementById('nowmap') as SVGSVGElement | null;
-if (locator && rows.length) {
-  const latest = rows.find((q) => q.r !== 'outro');
-  if (latest) {
-    const render = () => drawLocator(locator, latest, rows);
-    render();
-    redrawOn(render);
-  }
+if (locator) {
+  // The latest Portuguese earthquake, re-picked whenever live.ts adds one.
+  const render = () => {
+    const latest = store.rows.find((q) => q.r !== 'outro');
+    if (latest) drawLocator(locator, latest, store.rows);
+  };
+  render();
+  redrawOn(render);
+  onRows(render);
 }
 
 const regionMap = document.getElementById('map') as SVGSVGElement | null;
 if (regionMap) {
   const r = regionMap.dataset.region as PtRegion;
-  const render = () => drawRegion(regionMap, r, rows, now);
+  const render = () => drawRegion(regionMap, r, store.rows.filter((q) => q.r === r), store.now);
   render();
   redrawOn(render);
+  onRows(render);
 
   const btn = document.getElementById('layersbtn')!;
   const panel = document.getElementById('layerspanel')!;

@@ -267,3 +267,16 @@ footer.foot{border-top:1px solid var(--rule); margin-top:clamp(40px,8vh,80px); p
 .qlist li.extra{display:none}
 .qlist.all li.extra{display:block}
 @media (max-width:640px){.qlist a, .qlist .row{grid-template-columns:4.6em 3.6em 1fr} .qlist .qd{grid-column:3}}
+
+/* tempo real */
+.status[data-live="off"] .dot{background:var(--muted); animation:none}
+.status[data-live="off"] [data-live-label]{color:var(--muted)}
+.toasts{position:fixed; left:clamp(16px,4vw,56px); bottom:20px; z-index:20; display:flex; flex-direction:column; gap:8px; max-width:min(560px,calc(100vw - 32px))}
+.toast{display:flex; align-items:center; gap:14px; background:var(--bg); color:var(--ink); border:1px solid var(--rule); border-left:2px solid var(--signal); border-radius:6px; padding:9px 12px; font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums}
+.toast a{text-decoration:none; color:inherit}
+.toast a:hover{color:var(--signal)}
+.toast button{appearance:none; background:none; border:0; color:var(--muted); font:inherit; font-size:15px; line-height:1; cursor:pointer; padding:2px 4px; margin-left:auto}
+.toast button:hover{color:var(--ink)}
+@media (prefers-reduced-motion: no-preference){ .toast{animation:toastin .4s ease both} }
+@keyframes toastin{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+.qlist li.prelim .qm{color:var(--signal)}

@@ -1,6 +1,7 @@
 import { dayMonth, hourOf } from '../lib/format';
 import type { Row } from '../lib/summary';
-import { css, hideTip, readRows, redrawOn, rowTip, showTip } from './ui';
+import { onRows, store } from './store';
+import { css, hideTip, redrawOn, rowTip, showTip } from './ui';
 
 /**
  * Helicorder ("sismógrafo de tambor"): the last 72 h in 24 rows of 3 h, the
@@ -117,11 +118,11 @@ function draw(cv: HTMLCanvasElement, rows: Row[], now: number): Hit[] {
 
 const cv = document.getElementById('drumcv') as HTMLCanvasElement | null;
 if (cv) {
-  const { now, rows } = readRows('quakes-data');
   let hits: Hit[] = [];
-  const render = () => (hits = draw(cv, rows, now));
+  const render = () => (hits = draw(cv, store.rows, store.now));
   render();
   redrawOn(render);
+  onRows(render);
 
   const find = (e: MouseEvent) => {
     const r = cv.getBoundingClientRect();

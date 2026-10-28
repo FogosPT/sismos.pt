@@ -32,7 +32,7 @@ const SHOWN = 12;
   nav="mapa" catalogue={catalogue} mapRegion={r}>
   <QuakeData events={events} now={now} />
 
-  <div class="rhead">
+  <div class="rhead" data-live="rhead">
     <h1 class="rswitch">
       {REGIONS.map((x) => (x === r ? <a href={`/${x}`} aria-current="page">{REGION_NAME[x]}</a> : <a href={`/${x}`}>{REGION_NAME[x]}</a>))}
     </h1>
@@ -54,7 +54,7 @@ const SHOWN = 12;
     <div class="zoomhint">arraste e faça zoom</div>
   </div>
 
-  <ul class="qlist" id="qlist">
+  <ul class="qlist" id="qlist" data-live="qlist">
     {
       events.map((q, i) => {
         const t = Date.parse(q.time);
@@ -65,7 +65,7 @@ const SHOWN = 12;
               <span class={`qm${q.magnitude == null ? ' prov' : ''}`}>{q.magnitude == null ? 'por rever' : fmtMag(q.magnitude)}</span>
               <span class="qp">
                 {placeName(q.place)}
-                <small>{q.felt ? `Sentido${q.intensity ? `, intensidade ${q.intensity}` : ''}${q.local ? ` · ${feltLocal(q.local)}` : ''}` : relative(t, now)}</small>
+                <small>{q.felt ? `Sentido${q.intensity ? `, intensidade ${q.intensity}` : ''}${q.local ? ` · ${feltLocal(q.local)}` : ''}` : <span data-rel={q.time}>{relative(t, now)}</span>}</small>
               </span>
               <span class="qd">
                 {q.felt && <svg class="ico sm felt" aria-label="sentido"><use href="#i-sentido" /></svg>}
@@ -84,8 +84,10 @@ const SHOWN = 12;
 <script>
   import '../scripts/maps';
 
-  const more = document.getElementById('qmore');
-  more?.addEventListener('click', () => {
+  // Delegated: live.ts may swap the list and the button for fresh server markup.
+  document.addEventListener('click', (e) => {
+    const more = (e.target as HTMLElement).closest('#qmore');
+    if (!more) return;
     document.getElementById('qlist')?.classList.add('all');
     more.remove();
   });

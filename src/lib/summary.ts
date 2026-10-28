@@ -35,8 +35,10 @@ export function regionSummary(events: Earthquake[], region: PtRegion, now: numbe
 
 /** Compact rows for the client scripts (seismogram, maps). */
 export interface Row {
-  t: number; lat: number; lon: number; d: number | null; m: number | null; r: string; p: string | null; felt: boolean;
+  id: string; t: number; lat: number; lon: number; d: number | null; m: number | null; r: string; p: string | null; felt: boolean;
+  /** Seen only on the EMSC realtime feed, not yet in fogosapi. */
+  prelim?: boolean;
 }
 
 export const toRows = (events: Earthquake[]): Row[] =>
-  events.map((q) => ({ t: t(q), lat: q.lat, lon: q.lon, d: q.depth, m: q.magnitude, r: q.region, p: q.place, felt: q.felt }));
+  events.map((q) => ({ id: q.id, t: t(q), lat: q.lat, lon: q.lon, d: q.depth, m: q.magnitude, r: q.region, p: q.place, felt: q.felt }));
