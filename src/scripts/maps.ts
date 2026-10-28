@@ -1,6 +1,6 @@
 import { geoMercator, type GeoProjection } from 'd3-geo';
 import { select, type Selection } from 'd3-selection';
-import { zoom } from 'd3-zoom';
+import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import geo from '../data/geo.json';
 import { radius } from '../lib/format';
 import { EXTENT, PLACES } from '../lib/region';
@@ -85,6 +85,8 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
   const w = box.clientWidth;
   const h = box.clientHeight;
   const small = w < 600;
+  // Redraws (layers, colour, theme, resize) keep the reader's zoom and pan.
+  const previous = zoomTransform(el);
   const svg = select(el).attr('viewBox', `0 0 ${w} ${h}`);
   svg.selectAll('*').remove();
   const p = projectionFor(r, w, h, small ? 20 : 48);
@@ -130,16 +132,18 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
   nodes.on('mousemove', (e: MouseEvent, d) => showTip(rowTip(d), e.clientX, e.clientY)).on('mouseleave', hideTip);
 
   // Zoom keeps markers and labels at constant size.
-  svg.call(
-    zoom<SVGSVGElement, unknown>().scaleExtent([1, 12]).translateExtent([[-w * 0.2, -h * 0.2], [w * 1.2, h * 1.2]]).on('zoom', (e) => {
+  const behaviour = zoom<SVGSVGElement, unknown>().scaleExtent([1, 12]).translateExtent([[-w * 0.2, -h * 0.2], [w * 1.2, h * 1.2]]).on('zoom', (e) => {
       const t = e.transform;
       g.attr('transform', t);
       g.selectAll<SVGGElement, unknown>('.qg,.lb').attr('transform', function () {
         return `translate(${this.dataset.x},${this.dataset.y}) scale(${1 / t.k})`;
       });
       heat.selectAll('circle').attr('r', heatR / t.k);
-    }),
-  ).on('dblclick.zoom', null);
+    });
+  svg.call(behaviour).on('dblclick.zoom', null);
+  if (previous !== zoomIdentity && (previous.k !== 1 || previous.x !== 0 || previous.y !== 0)) {
+    svg.call(behaviour.transform, previous);
+  }
 
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
   $('ly-plates').checked = state.plates;
