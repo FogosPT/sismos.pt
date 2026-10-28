@@ -46,6 +46,7 @@ export function rowFromEmsc(msg: EmscMessage): Row | null {
     r,
     p: p.flynn_region ?? null,
     felt: false,
+    u: null, // no page until fogosapi has it
     prelim: true,
   };
 }

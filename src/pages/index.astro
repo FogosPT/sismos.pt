@@ -6,6 +6,7 @@ import { workerEnv } from '../lib/env';
 import {
   capitalise, depthKnown, depthLong, feltLocal, fmtMag, hm, dayMonth, magTypeLabel, num, placeName, relative, SOURCE_NAME, utcHm,
 } from '../lib/format';
+import { quakeUrl } from '../lib/links';
 import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
 import { isPt, summarise } from '../lib/summary';
 import { REGIONS } from '../lib/types';
@@ -23,6 +24,8 @@ const description = q
   ? `Último sismo em Portugal: magnitude ${fmtMag(q.magnitude)}, ${placeName(q.place)} (${REGION_NAME[q.region]}), ${relative(t, now)}. Sismos em tempo real no Continente, Açores e Madeira.`
   : 'Sismos em tempo real em Portugal Continental, Açores e Madeira.';
 const sources = (q?.sourceNames ?? []).map((x) => SOURCE_NAME[x] ?? x.toUpperCase()).join(' · ');
+const href = q ? quakeUrl(q) : null;
+const largestHref = s.largest30 ? quakeUrl(s.largest30) : null;
 ---
 
 <Base title="sismos.pt" description={description} nav="agora" catalogue={catalogue} mapRegion={q?.region ?? 'continente'}
@@ -43,7 +46,7 @@ const sources = (q?.sourceNames ?? []).map((x) => SOURCE_NAME[x] ?? x.toUpperCas
             <span data-rel={q.time} data-cap>{capitalise(relative(t, now))}</span>, {q.magnitude == null ? 'magnitude por rever' : <>magnitude <span class="m">{fmtMag(q.magnitude)}</span></>}.
           </h1>
           <p class="where">
-            {placeName(q.place)}, {REGION_NAME[q.region]}.
+            {href ? <a href={href}>{placeName(q.place)}, {REGION_NAME[q.region]}</a> : <>{placeName(q.place)}, {REGION_NAME[q.region]}</>}.
             {depthKnown(q.depth) ? ` A ${num(q.depth, 0)} km de profundidade.` : ' Profundidade não determinada.'}
             {q.felt
               ? ` Foi sentido${q.intensity ? ` com intensidade ${q.intensity}` : ''}${q.local ? ` em ${feltLocal(q.local)}` : ''}.`
@@ -51,13 +54,13 @@ const sources = (q?.sourceNames ?? []).map((x) => SOURCE_NAME[x] ?? x.toUpperCas
           </p>
           <p class="ctx">
             Nos últimos 7 dias foram registados {s.last7} sismos em território português. Em 30 dias, {s.felt30} {s.felt30 === 1 ? 'foi sentido' : 'foram sentidos'} pela população.
-            {s.largest30 && ` O maior teve magnitude ${fmtMag(s.largest30.magnitude)}, a ${dayMonth(Date.parse(s.largest30.time), s.largest30.region)}, ${placeName(s.largest30.place)}.`}
+            {s.largest30 && <> O maior teve magnitude {fmtMag(s.largest30.magnitude)}, a {dayMonth(Date.parse(s.largest30.time), s.largest30.region)}, {largestHref ? <a href={largestHref}>{placeName(s.largest30.place)}</a> : placeName(s.largest30.place)}.</>}
           </p>
         </div>
         <div class="now-side">
-          <a class="now-map" href={`/${q.region}`} aria-label={`Ver o mapa de ${REGION_NAME[q.region]}`}>
+          <a class="now-map" href={href ?? `/${q.region}`} aria-label={href ? 'Abrir a ficha deste sismo' : `Ver o mapa de ${REGION_NAME[q.region]}`}>
             <svg id="nowmap" role="img" aria-label={`Localização do sismo em ${REGION_NAME[q.region]}`}></svg>
-            <span class="tag">ver mapa →</span>
+            <span class="tag">{href ? 'ver ficha →' : 'ver mapa →'}</span>
           </a>
           <dl class="facts">
             <dt><svg class="ico sm"><use href="#i-relogio" /></svg>hora</dt>

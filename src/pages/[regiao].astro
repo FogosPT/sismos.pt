@@ -5,6 +5,7 @@ import { getCachedCatalogue } from '../lib/catalogue';
 import { workerEnv } from '../lib/env';
 import { dayMonth, depthShort, feltLocal, fmtMag, hm, placeName, relative } from '../lib/format';
 import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
+import { quakeUrl } from '../lib/links';
 import { regionSummary } from '../lib/summary';
 import { REGIONS, type PtRegion } from '../lib/types';
 
@@ -58,9 +59,11 @@ const SHOWN = 12;
     {
       events.map((q, i) => {
         const t = Date.parse(q.time);
+        const href = quakeUrl(q);
+        const Row = href ? 'a' : 'div';
         return (
           <li class={i >= SHOWN ? 'extra' : undefined}>
-            <div class="row">
+            <Row class="row" href={href ?? undefined}>
               <span class="qt"><time datetime={q.time}>{dayMonth(t, r)}<br />{hm(t, r)}</time></span>
               <span class={`qm${q.magnitude == null ? ' prov' : ''}`}>{q.magnitude == null ? 'por rever' : fmtMag(q.magnitude)}</span>
               <span class="qp">
@@ -71,7 +74,7 @@ const SHOWN = 12;
                 {q.felt && <svg class="ico sm felt" aria-label="sentido"><use href="#i-sentido" /></svg>}
                 <svg class="ico sm" aria-hidden="true"><use href="#i-profundidade" /></svg>{depthShort(q.depth)}
               </span>
-            </div>
+            </Row>
           </li>
         );
       })

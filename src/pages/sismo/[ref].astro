@@ -1,0 +1,205 @@
+---
+import Base from '../../layouts/Base.astro';
+import { edgeCached } from '../../lib/cache';
+import { fogosOptions } from '../../lib/catalogue';
+import { energyJ, latencyLabel, MOHO, sourceRows, TNT_TONNE_J } from '../../lib/detail';
+import { workerEnv } from '../../lib/env';
+import {
+  capitalise, dayMonth, depthKnown, depthLong, depthShort, feltLocal, fmtMag, hm, magTypeLabel, num, placeName, SOURCE_NAME,
+} from '../../lib/format';
+import { parseQuakeRef, quakePath, quakeUrl } from '../../lib/links';
+import { REGION_NAME, TIMEZONE, TIMEZONE_NAME } from '../../lib/region';
+import { fogosDetail } from '../../lib/sources/fogos';
+import type { EarthquakeDetail } from '../../lib/types';
+
+const ref = parseQuakeRef(Astro.params.ref ?? '');
+if (!ref) return new Response(null, { status: 404 });
+
+const q = await edgeCached<EarthquakeDetail | null>(`sismo/${ref.id}`, 300, () => fogosDetail(ref.id, fogosOptions(workerEnv)), (v) => v !== null);
+if (!q) return new Response(null, { status: 404 });
+
+// One URL per earthquake: the slug follows magnitude/place revisions.
+const canonicalPath = quakePath(q);
+if (ref.slug !== (q.slug ?? '')) return Astro.redirect(canonicalPath, 301);
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=120');
+
+const r = q.region;
+const t = Date.parse(q.time);
+const tz = TIMEZONE[r];
+const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('pt-PT', { timeZone: tz, ...o }).format(t);
+const fullDate = capitalise(fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+const localTime = fmt({ hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const utc = new Date(t).toISOString().slice(11, 19);
+const year = new Date(t).getUTCFullYear();
+const place = placeName(q.place);
+const where = r === 'outro' ? place : `${place}, ${REGION_NAME[r]}`;
+const rows = sourceRows(q);
+const live = rows.filter((x) => x.latencyMs != null);
+const E = q.magnitude != null ? energyJ(q.magnitude) : null;
+const usgs = q.sources?.usgs?.extra as Record<string, any> | undefined;
+const mag = q.magnitude == null ? 'magnitude por rever' : `magnitude ${fmtMag(q.magnitude)}`;
+
+const title = `Sismo de ${mag} · ${where} · ${fmt({ day: 'numeric', month: 'long', year: 'numeric' })}`;
+const description =
+  `Sismo de ${mag} (${magTypeLabel(q.magType)}) a ${fullDate.toLowerCase()}, às ${localTime.slice(0, 5)} (${TIMEZONE_NAME[r]}), ${where}. ` +
+  `Profundidade ${depthLong(q.depth)}. ${q.felt ? `Sentido${q.intensity ? `, intensidade máxima ${q.intensity}` : ''}.` : 'Sem registo de ter sido sentido.'}`;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: title,
+  description,
+  url: new URL(canonicalPath, Astro.site).href,
+  inLanguage: 'pt-PT',
+  dateModified: q.updated ?? q.time,
+  about: {
+    '@type': 'Place',
+    name: where,
+    geo: { '@type': 'GeoCoordinates', latitude: q.lat, longitude: q.lon },
+  },
+  isPartOf: { '@type': 'WebSite', name: 'sismos.pt', url: 'https://sismos.pt' },
+};
+const data = {
+  q: { t, lat: q.lat, lon: q.lon, d: q.depth, m: q.magnitude, r },
+  moho: MOHO[r],
+  sources: rows.map((x) => ({ name: SOURCE_NAME[x.name] ?? x.name.toUpperCase(), d: x.report.depth, m: x.report.magnitude, mt: x.magType, latency: x.latencyMs, preferred: x.preferred })),
+};
+---
+
+<Base title={title} description={description} nav="mapa" mapRegion={r === 'outro' ? 'continente' : r} jsonLd={jsonLd}
+  ogImage={`/og/${q.id}.png`} noindex={q.magnitude == null || q.magnitude < 2}>
+  <script type="application/json" id="ficha-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
+
+  <a class="back" href={r === 'outro' ? '/' : `/${r}`}><svg class="ico sm"><use href="#i-seta" /></svg><span>{r === 'outro' ? 'voltar ao início' : `voltar a ${REGION_NAME[r]}`}</span></a>
+
+  <article>
+    <div class="fhero">
+      <div>
+        <p class={`bigm${q.magnitude == null ? ' prov' : ''}`} aria-label={`Magnitude ${fmtMag(q.magnitude)}`}>
+          {q.magnitude == null ? '?' : fmtMag(q.magnitude)}<sub>{magTypeLabel(q.magType)}</sub>
+        </p>
+        <h1 class="fplace">{where}</h1>
+        <div class="fwhen"><time datetime={q.time}>{fullDate} · {localTime} {TIMEZONE_NAME[r]} · {utc} UTC</time></div>
+        <p class="ffelt">
+          <svg class="ico"><use href="#i-sentido" /></svg>
+          <span>
+            {q.felt ? (
+              <>Sentido{q.intensity && <> com intensidade máxima <b>{q.intensity}</b> (escala de Mercalli modificada)</>}{q.local && `, em ${feltLocal(q.local)}`}.</>
+            ) : (
+              'Sem registo de ter sido sentido pela população.'
+            )}
+            {q.shakemapUrl && <> <a href={q.shakemapUrl}>Mapa de intensidades do IPMA</a>.</>}
+          </span>
+        </p>
+        {q.provisional && <p class="note">A magnitude ainda não foi revista pelo IPMA.</p>}
+      </div>
+      <div class="xsec" id="xsec" role="img" aria-label={depthKnown(q.depth) ? `Corte vertical: hipocentro a ${num(q.depth, 0)} km de profundidade` : 'Corte vertical: profundidade não determinada'}></div>
+    </div>
+
+    <section class="fsec">
+      <h2><svg class="ico"><use href="#i-fonte" /></svg>O que disseram as fontes</h2>
+      <div>
+        <table class="srct">
+          <thead><tr><th>Fonte</th><th>Magnitude</th><th>Profundidade</th><th>Diferença</th><th>Publicado</th></tr></thead>
+          <tbody>
+            {rows.map((x) => (
+              <tr class={x.preferred ? 'pref' : undefined}>
+                <th scope="row">{x.report.url ? <a href={x.report.url}>{SOURCE_NAME[x.name] ?? x.name.toUpperCase()}</a> : SOURCE_NAME[x.name] ?? x.name.toUpperCase()}{x.preferred && <small> referência</small>}</th>
+                <td>{fmtMag(x.report.magnitude)} <small>{x.magType ?? ''}</small></td>
+                <td>{depthShort(x.report.depth)}</td>
+                <td>{x.preferred ? '—' : `${x.dtSeconds >= 0 ? '+' : '−'}${num(Math.abs(x.dtSeconds), 1)} s · ${num(x.km, 0)} km`}</td>
+                <td>{x.latencyMs != null ? `+${latencyLabel(x.latencyMs)}` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {live.length > 0 && <div class="tl" id="tl"></div>}
+        <p class="note">
+          A solução de referência é a do {SOURCE_NAME[q.preferredSource ?? 'ipma'] ?? q.preferredSource}. "Diferença" é a diferença de hora de origem e de localização do
+          epicentro em relação a ela. {live.length > 0 ? '"Publicado" é quanto tempo depois do sismo o sismos.pt recebeu cada relato.' : 'Este sismo foi importado depois de ocorrer, por isso não há tempos de publicação.'}
+        </p>
+      </div>
+    </section>
+
+    <section class="fsec">
+      <h2><svg class="ico"><use href="#i-epicentro" /></svg>Onde</h2>
+      <div>
+        <div id="loc"></div>
+        <p class="note mono">{Math.abs(q.lat).toFixed(3)}° {q.lat >= 0 ? 'N' : 'S'} · {Math.abs(q.lon).toFixed(3)}° {q.lon <= 0 ? 'W' : 'E'}</p>
+      </div>
+    </section>
+
+    {
+      q.aftershocks?.window && (
+        <section class="fsec">
+          <h2><svg class="ico"><use href="#i-replica" /></svg>Réplicas</h2>
+          <div>
+            <p class="lead">
+              {q.aftershocks.count === 0
+                ? 'Sem réplicas registadas.'
+                : `${q.aftershocks.count} ${q.aftershocks.count === 1 ? 'sismo seguiu-se' : 'sismos seguiram-se'} a este, a menos de ${num(q.aftershocks.window.km, 0)} km e nos ${num(q.aftershocks.window.days, 0)} dias seguintes.`}
+            </p>
+            {q.aftershocks.data.length > 0 && (
+              <ul class="near">
+                {q.aftershocks.data.slice(0, 12).map((x) => (
+                  <li><a href={quakeUrl(x) ?? undefined}><span class="serif">{fmtMag(x.magnitude)}</span><span class="mono">{dayMonth(Date.parse(x.time), r)} {hm(Date.parse(x.time), r)}</span><span>{placeName(x.place)}</span></a></li>
+                ))}
+              </ul>
+            )}
+            <details class="dis"><summary>Ver como se calcula</summary><div class="body">Contam como réplicas os sismos posteriores dentro da janela de Gardner e Knopoff (1974) para esta magnitude, que cresce com o tamanho do sismo principal: {num(q.aftershocks.window.km, 0)} km e {num(q.aftershocks.window.days, 0)} dias.</div></details>
+          </div>
+        </section>
+      )
+    }
+
+    {
+      q.nearbyHistory?.length > 0 && (
+        <section class="fsec">
+          <h2><svg class="ico"><use href="#i-falha" /></svg>Histórico na zona</h2>
+          <div>
+            <p class="lead">Os maiores sismos registados antes deste, a menos de 50 km.</p>
+            <ul class="near">
+              {q.nearbyHistory.map((x) => (
+                <li><a href={quakeUrl(x) ?? undefined}><span class="serif">{fmtMag(x.magnitude)}</span><span class="mono">{new Date(x.time).getUTCFullYear()}</span><span>{placeName(x.place)}</span></a></li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )
+    }
+
+    <section class="fsec">
+      <h2><svg class="ico"><use href="#i-direto" /></svg>Mais detalhe</h2>
+      <div>
+        <details class="dis"><summary>Energia libertada</summary><div class="body">
+          {E != null
+            ? <>Cerca de <span class="mono">{num(E / 1e9, E < 1e9 ? 2 : 1)} GJ</span>, o equivalente a {num(E / TNT_TONNE_J, E < TNT_TONNE_J ? 2 : 1)} toneladas de TNT. Cada ponto de magnitude a mais multiplica a energia libertada por cerca de 32.</>
+            : 'A magnitude ainda não foi revista.'}
+        </div></details>
+        {
+          usgs && (usgs.feltReports || usgs.products) && (
+            <details class="dis"><summary>USGS</summary><div class="body"><dl class="kv">
+              {usgs.feltReports && <><dt>Relatos "Did You Feel It?"</dt><dd>{usgs.feltReports}{usgs.cdi ? ` · intensidade ${num(usgs.cdi, 1)}` : ''}</dd></>}
+              {usgs.alert && <><dt>Alerta PAGER</dt><dd>{usgs.alert}</dd></>}
+              {usgs.tsunami && <><dt>Tsunami</dt><dd>sinalizado pelo USGS — siga a informação oficial do IPMA</dd></>}
+              {Array.isArray(usgs.products) && <><dt>Produtos</dt><dd>{usgs.products.join(', ')}</dd></>}
+            </dl></div></details>
+          )
+        }
+        <details class="dis"><summary>Dados em bruto</summary><div class="body"><dl class="kv">
+          <dt>Latitude</dt><dd>{q.lat.toFixed(3)}°</dd>
+          <dt>Longitude</dt><dd>{q.lon.toFixed(3)}°</dd>
+          <dt>Profundidade</dt><dd>{depthKnown(q.depth) ? `${num(q.depth, 1)} km` : 'não determinada (fixada a 0 km)'}</dd>
+          <dt>Magnitude</dt><dd>{fmtMag(q.magnitude)} {magTypeLabel(q.magType)} ({SOURCE_NAME[q.magnitudeSource ?? ''] ?? '—'})</dd>
+          <dt>Região</dt><dd>{q.place ?? '—'}</dd>
+          {rows.map((x) => <><dt>ID {SOURCE_NAME[x.name] ?? x.name.toUpperCase()}</dt><dd>{x.report.id}</dd></>)}
+          <dt>Ano</dt><dd>{year}</dd>
+        </dl></div></details>
+      </div>
+    </section>
+  </article>
+</Base>
+
+<script>
+  import '../../scripts/ficha';
+</script>

@@ -1,3 +1,4 @@
+import { quakeUrl } from './links';
 import type { Earthquake, PtRegion } from './types';
 import { REGIONS } from './types';
 
@@ -36,9 +37,11 @@ export function regionSummary(events: Earthquake[], region: PtRegion, now: numbe
 /** Compact rows for the client scripts (seismogram, maps). */
 export interface Row {
   id: string; t: number; lat: number; lon: number; d: number | null; m: number | null; r: string; p: string | null; felt: boolean;
+  /** Page of the earthquake, when it has one. */
+  u: string | null;
   /** Seen only on the EMSC realtime feed, not yet in fogosapi. */
   prelim?: boolean;
 }
 
 export const toRows = (events: Earthquake[]): Row[] =>
-  events.map((q) => ({ id: q.id, t: t(q), lat: q.lat, lon: q.lon, d: q.depth, m: q.magnitude, r: q.region, p: q.place, felt: q.felt }));
+  events.map((q) => ({ id: q.id, t: t(q), lat: q.lat, lon: q.lon, d: q.depth, m: q.magnitude, r: q.region, p: q.place, felt: q.felt, u: quakeUrl(q) }));

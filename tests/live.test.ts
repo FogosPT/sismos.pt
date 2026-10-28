@@ -5,7 +5,7 @@ import type { Row } from '../src/lib/summary';
 
 const [chile, azores, quarry] = fixture.messages as any[];
 
-const row = (o: Partial<Row>): Row => ({ id: 'x', t: Date.parse('2026-10-28T17:40:12Z'), lat: 37.84, lon: -26.25, d: 9, m: 3.1, r: 'acores', p: null, felt: false, ...o });
+const row = (o: Partial<Row>): Row => ({ id: 'x', t: Date.parse('2026-10-28T17:40:12Z'), lat: 37.84, lon: -26.25, d: 9, m: 3.1, r: 'acores', p: null, felt: false, u: null, ...o });
 
 describe('EMSC realtime messages', () => {
   it('ignores events outside the Portuguese area (real recorded frame)', () => {
@@ -16,7 +16,7 @@ describe('EMSC realtime messages', () => {
   it('turns a Portuguese earthquake into a preliminary row', () => {
     expect(rowFromEmsc(azores)).toEqual({
       id: 'emsc-20261028_TEST01', t: Date.parse('2026-10-28T17:40:12.3Z'), lat: 37.84, lon: -26.25, d: 9, m: 3.1,
-      r: 'acores', p: 'AZORES ISLANDS, PORTUGAL', felt: false, prelim: true,
+      r: 'acores', p: 'AZORES ISLANDS, PORTUGAL', felt: false, u: null, prelim: true,
     });
   });
 

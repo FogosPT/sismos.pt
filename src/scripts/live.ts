@@ -157,8 +157,14 @@ function showPrelimOnHome(q: Row, revision = false) {
     dd[3].textContent = 'sem registo';
     dd[4].textContent = 'EMSC (preliminar)';
   }
+  // A preliminary event has no page yet: the map links to the region instead.
   const map = section.querySelector<HTMLAnchorElement>('.now-map');
-  if (map) map.href = `/${r}`;
+  if (map) {
+    map.href = `/${r}`;
+    map.setAttribute('aria-label', `Ver o mapa de ${REGION_NAME[r]}`);
+    const tag = map.querySelector('.tag');
+    if (tag) tag.textContent = 'ver mapa →';
+  }
 }
 
 /** Region page: a preliminary event of this region goes to the top of the list (or is rewritten on revision). */
