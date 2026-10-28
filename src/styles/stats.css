@@ -1,0 +1,14 @@
+/* /estatisticas — complements the ESTATÍSTICAS block of global.css. */
+.sswitch a{color:var(--muted); text-decoration:none; padding:4px 0; border-bottom:1px solid transparent}
+.sswitch a:hover{color:var(--ink)}
+.sswitch a[aria-current="page"]{color:var(--ink); border-bottom-color:var(--ink)}
+.sswitch.swin{margin-top:12px; font-family:var(--mono); font-size:13px}
+.story .chart > table.tiny{width:100%}
+table.tiny caption{caption-side:top; text-align:left; font-family:var(--sans); font-size:12px; color:var(--muted); padding-bottom:6px}
+table.tiny + table.tiny{margin-top:28px}
+table.tiny td.l, table.tiny th.l{text-align:left}
+table.tiny td small{display:block; color:var(--muted); font-family:var(--sans); font-size:12px}
+table.tiny tbody tr{border-top:1px solid var(--rule)}
+table.tiny.seq th:first-child, table.tiny.seq td:first-child{text-align:left}
+.computed{color:var(--muted); font-size:13px; padding-block:24px 0}
+.computed a{color:inherit; text-decoration-color:var(--rule)}

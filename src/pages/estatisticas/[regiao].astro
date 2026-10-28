@@ -1,0 +1,11 @@
+---
+import StatsPage from '../../components/StatsPage.astro';
+import type { StatsRegion } from '../../lib/stats/types';
+
+const r = Astro.params.regiao as StatsRegion;
+if (!['continente', 'acores', 'madeira'].includes(r)) {
+  return new Response(null, { status: 404 });
+}
+---
+
+<StatsPage region={r} />

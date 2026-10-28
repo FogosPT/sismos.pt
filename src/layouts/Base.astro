@@ -14,7 +14,7 @@ import type { Catalogue } from '../lib/types';
 interface Props {
   title: string;
   description: string;
-  nav?: 'agora' | 'mapa' | 'fontes' | 'sobre';
+  nav?: 'agora' | 'mapa' | 'estatisticas' | 'fontes' | 'sobre';
   catalogue?: Catalogue;
   /** Region the "Mapa" link opens. */
   mapRegion?: string;
@@ -84,6 +84,7 @@ const current = (k: string) => (nav === k ? 'page' : undefined);
         <nav class="main" aria-label="Principal">
           <a href="/" aria-current={current('agora')}>Agora</a>
           <a href={`/${mapRegion}`} aria-current={current('mapa')}>Mapa</a>
+          <a href="/estatisticas" aria-current={current('estatisticas')}>Estatísticas</a>
           <a href="/fontes" class="hide-sm" aria-current={current('fontes')}>Fontes</a>
           <button class="iconbtn" id="themebtn" type="button" aria-label="Alternar tema claro/escuro"><svg class="ico"><use href="#i-tema" /></svg></button>
         </nav>
