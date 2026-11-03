@@ -1,0 +1,63 @@
+---
+import Base from '../../layouts/Base.astro';
+import '../../styles/history.css';
+import { workerEnv } from '../../lib/env';
+import { fmtMag, num } from '../../lib/format';
+import { yearCounts } from '../../lib/history';
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=3600');
+
+const data = await yearCounts(workerEnv);
+const years = data?.years ?? [];
+const total = years.reduce((a, y) => a + y.n, 0);
+const first = years[0]?.year;
+const decades = new Map<number, typeof years>();
+for (const y of years) {
+  const d = Math.floor(y.year / 10) * 10;
+  decades.set(d, [...(decades.get(d) ?? []), y]);
+}
+const ordered = [...decades.entries()].sort((a, b) => b[0] - a[0]);
+---
+
+<Base title="Histórico de sismos em Portugal" nav="historico"
+  description={first ? `Catálogo de ${num(total, 0)} sismos registados em Portugal Continental, Açores e Madeira desde ${first}, ano a ano.` : 'Catálogo de sismos em Portugal, ano a ano.'}>
+  <header class="hhead">
+    <h1>{first ? `Sismos em Portugal desde ${first}.` : 'Histórico de sismos.'}</h1>
+    {
+      first ? (
+        <p>
+          {num(total, 0)} sismos registados no Continente, nos Açores e na Madeira. Escolha um ano para ver os maiores, os que foram sentidos e a lista completa.
+        </p>
+      ) : (
+        <p class="note">O histórico não está disponível neste momento. Tente daqui a pouco.</p>
+      )
+    }
+    <p class="note">
+      Os primeiros anos só têm os sismos maiores: as redes sísmicas eram poucas e pouco sensíveis. O número de sismos registados por ano cresce com os
+      instrumentos, não necessariamente com a atividade.
+    </p>
+  </header>
+
+  <section class="hsec">
+    <h2>Por década</h2>
+    <div class="decades">
+      {
+        ordered.map(([d, ys]) => (
+          <div class="decade">
+            <h3>Década de {d}</h3>
+            <ul class="years">
+              {ys.slice().reverse().map((y) => (
+                <li>
+                  <a href={`/historico/${y.year}`}>
+                    <span class="y">{y.year}</span>
+                    <span class="c">{num(y.n, 0)}{y.maxM != null && <> · <b>M{fmtMag(y.maxM)}</b></>}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</Base>

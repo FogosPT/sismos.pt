@@ -1,0 +1,28 @@
+/* /historico — catálogo por ano */
+.hhead{padding-block:clamp(24px,5vh,56px) clamp(16px,3vh,32px); max-width:62ch}
+.hhead h1{font-family:var(--serif); font-weight:380; font-optical-sizing:auto; font-size:clamp(40px,6vw,88px); line-height:1; letter-spacing:-.015em; margin:0}
+.hhead h1 .yr{display:block; font-size:clamp(96px,16vw,220px); line-height:.85; letter-spacing:-.03em}
+.hhead p{color:var(--ink-2); font-size:17px; margin:.9em 0 0; max-width:56ch}
+.hhead .note{font-size:14px}
+.hsec{display:grid; align-items:start; grid-template-columns:minmax(0,15rem) minmax(0,1fr); gap:20px clamp(24px,5vw,80px); padding-block:clamp(32px,6vh,72px); border-top:1px solid var(--rule)}
+@media (max-width:760px){.hsec{grid-template-columns:1fr}}
+.hsec h2{font-family:var(--sans); font-weight:500; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:6px 0 0}
+.decades{display:grid; gap:28px}
+.decade h3{font-family:var(--serif); font-weight:380; font-size:28px; margin:0 0 10px}
+.years{display:grid; grid-template-columns:repeat(auto-fill,minmax(8.5rem,1fr)); gap:4px 18px; margin:0; padding:0; list-style:none}
+.years a{display:flex; justify-content:space-between; gap:10px; align-items:baseline; padding-block:6px; border-bottom:1px solid var(--rule); text-decoration:none}
+.years a:hover .y{color:var(--signal)}
+.years .y{font-family:var(--serif); font-size:20px; transition:color .15s}
+.years .c{font-family:var(--mono); font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
+.years .c b{color:var(--ink-2); font-weight:400}
+.months{display:block; width:100%; max-width:640px; height:auto; overflow:visible}
+.months text{font-family:var(--mono); font-size:11px; fill:var(--muted)}
+.months rect{fill:var(--ink-2)}
+.months rect.max{fill:var(--signal)}
+.split{display:flex; flex-wrap:wrap; gap:6px 28px; font-family:var(--serif); font-size:24px}
+.split a{text-decoration:none}
+.split a:hover{color:var(--signal)}
+.split small{font-family:var(--mono); font-size:13px; color:var(--muted); margin-left:6px}
+.ynav{display:flex; justify-content:space-between; gap:16px; padding-block:28px; border-top:1px solid var(--rule); font-family:var(--serif); font-size:22px}
+.ynav a{text-decoration:none; color:var(--ink-2)}
+.ynav a:hover{color:var(--signal)}
