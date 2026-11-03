@@ -1,5 +1,5 @@
 import { TIMEZONE } from './region';
-import type { Earthquake, Region } from './types';
+import type { Earthquake, Place, Region } from './types';
 
 const DIR: Record<string, string> = {
   N: 'norte', S: 'sul', E: 'este', W: 'oeste', NE: 'nordeste', NW: 'noroeste', SE: 'sudeste', SW: 'sudoeste',
@@ -50,6 +50,24 @@ export function placeName(p: string | null): string {
 
 /** IPMA "S.Miguel: Ginetes (Ponta Delgada)" → "S. Miguel, Ginetes (Ponta Delgada)". */
 export const feltLocal = (s: string | null) => (s ? s.replace(/\s*:\s*/, ', ').replace(/\.(?=\S)/g, '. ') : '');
+
+/** fogosapi compass points (Portuguese abbreviations) → words. */
+const BEARING: Record<string, string> = {
+  N: 'norte', NE: 'nordeste', E: 'este', SE: 'sudeste', S: 'sul', SO: 'sudoeste', O: 'oeste', NO: 'noroeste',
+};
+
+/** Farther than this, a "nearest place" says more about the sea than about the epicentre. */
+export const NEAR_MAX_KM = 250;
+
+/** "Ginetes (Ponta Delgada)" for a parish, "Vinhais" for a municipality or a parish of the same name. */
+export const placeLabel = (p: Place) => (p.kind === 'freguesia' && p.municipality && p.municipality !== p.name ? `${p.name} (${p.municipality})` : p.name);
+
+/** "a 12 km a sudoeste de Vinhais", "em Ginetes (Ponta Delgada)"; null without a usable place. */
+export function nearText(p: Place | null | undefined): string | null {
+  if (!p || !Number.isFinite(p.km) || p.km > NEAR_MAX_KM) return null;
+  if (p.km < 1) return `em ${placeLabel(p)}`;
+  return `a ${num(p.km, 0)} km a ${BEARING[p.bearing] ?? p.bearing} de ${placeLabel(p)}`;
+}
 
 /** 0 km in IPMA/EMSC means a fixed, undetermined depth. */
 export const depthKnown = (d: number | null): d is number => d != null && d > 0;

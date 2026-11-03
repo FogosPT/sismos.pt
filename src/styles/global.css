@@ -187,6 +187,11 @@ main{display:block; animation:fadein .5s ease both}
 .bigm.prov{color:var(--muted)}
 .fplace{font-family:var(--serif); font-weight:380; font-size:clamp(26px,3.3vw,44px); line-height:1.12; letter-spacing:-.01em; margin:.35em 0 .25em; text-wrap:balance}
 .fwhen{font-family:var(--mono); font-size:13.5px; color:var(--ink-2)}
+.fnear{margin:0 0 .6em; color:var(--ink-2); font-size:16px}
+.places{list-style:none; margin:14px 0 0; padding:0; max-width:520px}
+.places li{display:grid; grid-template-columns:7.5em 1fr auto; gap:12px; align-items:baseline; padding-block:7px; border-bottom:1px solid var(--rule)}
+.places .mono{font-family:var(--mono); font-size:12.5px; color:var(--muted)}
+.places small{color:var(--muted); font-size:12px}
 .ffelt{margin-top:22px; display:flex; gap:10px; align-items:flex-start; max-width:46ch; color:var(--ink-2)}
 .ffelt .ico{color:var(--signal); margin-top:3px}
 .xsec svg{display:block; width:100%; height:auto; overflow:visible}

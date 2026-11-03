@@ -23,7 +23,18 @@ export interface Earthquake {
   shakemapUrl: string | null;
   preferredSource: string | null;
   sourceNames: string[];
+  /** Nearest Portuguese place (fogosapi SeismicPlaces); absent on fallback data and older API versions. */
+  nearest?: Place | null;
   updated: string | null;
+}
+
+/** A place near the epicentre; `bearing` goes from the place to the epicentre. */
+export interface Place {
+  name: string;
+  municipality: string;
+  kind: 'freguesia' | 'concelho';
+  km: number;
+  bearing: 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SO' | 'O' | 'NO';
 }
 
 /** One catalogue's report of an earthquake (fogosapi `sources.{name}`). */
@@ -50,6 +61,7 @@ export interface EarthquakeDetail extends Earthquake {
   sources: Record<string, SourceReport>;
   aftershocks: { window: { days: number; km: number } | null; count: number; data: Earthquake[] };
   nearbyHistory: Earthquake[];
+  nearestPlaces?: Place[];
 }
 
 export interface Catalogue {

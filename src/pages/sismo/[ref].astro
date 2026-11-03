@@ -5,7 +5,7 @@ import { fogosOptions } from '../../lib/catalogue';
 import { energyJ, latencyLabel, MOHO, sourceRows, TNT_TONNE_J } from '../../lib/detail';
 import { workerEnv } from '../../lib/env';
 import {
-  capitalise, dayMonth, depthKnown, depthLong, depthShort, feltLocal, fmtMag, hm, magTypeLabel, num, placeName, SOURCE_NAME,
+  capitalise, dayMonth, depthKnown, depthLong, depthShort, feltLocal, fmtMag, hm, magTypeLabel, NEAR_MAX_KM, nearText, num, placeLabel, placeName, SOURCE_NAME,
 } from '../../lib/format';
 import { parseQuakeRef, quakePath, quakeUrl } from '../../lib/links';
 import { REGION_NAME, TIMEZONE, TIMEZONE_NAME } from '../../lib/region';
@@ -39,10 +39,12 @@ const live = rows.filter((x) => x.latencyMs != null);
 const E = q.magnitude != null ? energyJ(q.magnitude) : null;
 const usgs = q.sources?.usgs?.extra as Record<string, any> | undefined;
 const mag = q.magnitude == null ? 'magnitude por rever' : `magnitude ${fmtMag(q.magnitude)}`;
+const nearAll = (q.nearestPlaces ?? []).filter((p) => p.km <= NEAR_MAX_KM);
+const near = nearText(q.nearest ?? q.nearestPlaces?.[0]);
 
 const title = `Sismo de ${mag} · ${where} · ${fmt({ day: 'numeric', month: 'long', year: 'numeric' })}`;
 const description =
-  `Sismo de ${mag} (${magTypeLabel(q.magType)}) a ${fullDate.toLowerCase()}, às ${localTime.slice(0, 5)} (${TIMEZONE_NAME[r]}), ${where}. ` +
+  `Sismo de ${mag} (${magTypeLabel(q.magType)}) a ${fullDate.toLowerCase()}, às ${localTime.slice(0, 5)} (${TIMEZONE_NAME[r]}), ${where}${near ? `, ${near}` : ''}. ` +
   `Profundidade ${depthLong(q.depth)}. ${q.felt ? `Sentido${q.intensity ? `, intensidade máxima ${q.intensity}` : ''}.` : 'Sem registo de ter sido sentido.'}`;
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -79,6 +81,7 @@ const data = {
           {q.magnitude == null ? '?' : fmtMag(q.magnitude)}<sub>{magTypeLabel(q.magType)}</sub>
         </p>
         <h1 class="fplace">{where}</h1>
+        {near && <p class="fnear">{capitalise(near)}.</p>}
         <div class="fwhen"><time datetime={q.time}>{fullDate} · {localTime} {TIMEZONE_NAME[r]} · {utc} UTC</time></div>
         <p class="ffelt">
           <svg class="ico"><use href="#i-sentido" /></svg>
@@ -125,6 +128,11 @@ const data = {
       <h2><svg class="ico"><use href="#i-epicentro" /></svg>Onde</h2>
       <div>
         <div id="loc"></div>
+        {nearAll.length > 0 && (
+          <ul class="places">
+            {nearAll.map((p) => <li><span class="mono">{num(p.km, 0)} km {p.bearing}</span><span>{placeLabel(p)}</span><small>{p.kind}</small></li>)}
+          </ul>
+        )}
         <p class="note mono">{Math.abs(q.lat).toFixed(3)}° {q.lat >= 0 ? 'N' : 'S'} · {Math.abs(q.lon).toFixed(3)}° {q.lon <= 0 ? 'W' : 'E'}</p>
       </div>
     </section>
