@@ -294,3 +294,12 @@ footer.foot{border-top:1px solid var(--rule); margin-top:clamp(40px,8vh,80px); p
 .near .mono{font-family:var(--mono); font-size:12.5px; color:var(--muted); min-width:7.5em}
 .fwhen time{font:inherit}
 @media (max-width:640px){.srct thead{display:none} .srct tr{display:grid; grid-template-columns:1fr 1fr; padding-block:8px; border-bottom:1px solid var(--rule)} .srct th, .srct td{border:0; padding:2px 0}}
+
+/* mapa: falhas ativas (GEM) e vulcões (GVP) */
+.fault{fill:none; stroke:var(--ink-2); stroke-width:1.1; opacity:.5; stroke-linecap:round; vector-effect:non-scaling-stroke}
+.fault-hit{fill:none; stroke:transparent; stroke-width:9; vector-effect:non-scaling-stroke; cursor:help}
+.vg use{stroke:var(--ink-2); fill:var(--bg); stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round}
+.vg .v-hit{fill:transparent; cursor:help}
+.vg:hover use{stroke:var(--ink)}
+.layers .credit{margin:0; border-top:1px solid var(--rule); padding-top:10px; font-size:11.5px; color:var(--muted); line-height:1.4}
+.layers .credit a{color:inherit; text-underline-offset:.15em}
