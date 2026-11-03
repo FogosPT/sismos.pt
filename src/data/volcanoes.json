@@ -1,0 +1,122 @@
+{
+ "source": "Smithsonian Institution, Global Volcanism Program, Volcanoes of the World",
+ "volcanoes": [
+  {
+   "gvp": 382001,
+   "name": "Flores",
+   "gvpName": "Flores",
+   "type": "estratovulcão",
+   "lastEruption": -950,
+   "lat": 39.462,
+   "lon": -31.216
+  },
+  {
+   "gvp": 382010,
+   "name": "Faial",
+   "gvpName": "Fayal",
+   "type": "estratovulcão",
+   "lastEruption": 1958,
+   "lat": 38.576,
+   "lon": -28.713
+  },
+  {
+   "gvp": 382020,
+   "name": "Pico",
+   "gvpName": "Pico",
+   "type": "estratovulcão",
+   "lastEruption": 1720,
+   "lat": 38.47,
+   "lon": -28.4
+  },
+  {
+   "gvp": 382030,
+   "name": "São Jorge",
+   "gvpName": "Sao Jorge",
+   "type": "sistema fissural",
+   "lastEruption": 1902,
+   "lat": 38.65,
+   "lon": -28.08
+  },
+  {
+   "gvp": 382040,
+   "name": "Graciosa",
+   "gvpName": "Graciosa",
+   "type": "estratovulcão",
+   "lastEruption": -1950,
+   "lat": 39.02,
+   "lon": -27.97
+  },
+  {
+   "gvp": 382050,
+   "name": "Terceira",
+   "gvpName": "Terceira",
+   "type": "estratovulcão",
+   "lastEruption": 2000,
+   "lat": 38.73,
+   "lon": -27.32
+  },
+  {
+   "gvp": 382070,
+   "name": "Banco D. João de Castro",
+   "gvpName": "Don Joao de Castro Bank",
+   "type": "vulcão-escudo",
+   "lastEruption": 1720,
+   "lat": 38.23,
+   "lon": -26.63
+  },
+  {
+   "gvp": 382080,
+   "name": "Sete Cidades",
+   "gvpName": "Sete Cidades",
+   "type": "estratovulcão",
+   "lastEruption": 1880,
+   "lat": 37.865,
+   "lon": -25.785
+  },
+  {
+   "gvp": 382081,
+   "name": "Sistema fissural dos Picos",
+   "gvpName": "Picos Fissural Volcanic System",
+   "type": "sistema fissural",
+   "lastEruption": 1652,
+   "lat": 37.78,
+   "lon": -25.67
+  },
+  {
+   "gvp": 382090,
+   "name": "Água de Pau (Fogo)",
+   "gvpName": "Agua de Pau",
+   "type": "estratovulcão",
+   "lastEruption": 1564,
+   "lat": 37.77,
+   "lon": -25.47
+  },
+  {
+   "gvp": 382100,
+   "name": "Furnas",
+   "gvpName": "Furnas",
+   "type": "estratovulcão",
+   "lastEruption": 1630,
+   "lat": 37.77,
+   "lon": -25.32
+  },
+  {
+   "gvp": 382110,
+   "name": "Banco do Mónaco",
+   "gvpName": "Monaco Bank",
+   "type": "sistema fissural",
+   "lastEruption": 1911,
+   "lat": 37.6,
+   "lon": -25.88
+  },
+  {
+   "gvp": 382120,
+   "name": "Madeira",
+   "gvpName": "Madeira",
+   "type": "vulcão-escudo",
+   "lastEruption": -4500,
+   "lat": 32.73,
+   "lon": -16.97
+  }
+ ]
+}
