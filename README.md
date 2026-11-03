@@ -40,6 +40,9 @@ Configuração inicial (uma vez):
 
 Deploy manual (emergência): `npx wrangler login && npm run deploy`.
 
+**CI**: `.github/workflows/ci.yml` corre `check`, `test` e `build` em cada PR e push para `main`. O deploy é só do Workers Builds.
+**Merges**: um de cada vez, à espera de que o build da Cloudflare acabe. Builds em paralelo podem acabar fora de ordem e deixar em produção uma versão antiga, como aconteceu a 28/10 (#11 por cima do #13).
+
 ## Estrutura
 
 - `src/pages/` — `index` (agora), `[regiao]` (continente, açores, madeira), `sismo/[id]-[slug]` (ficha), `fontes`, `sobre`,
