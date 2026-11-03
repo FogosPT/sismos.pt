@@ -1,0 +1,164 @@
+---
+import Base from '../../layouts/Base.astro';
+import '../../styles/history.css';
+import { workerEnv } from '../../lib/env';
+import { dayMonth, depthShort, feltLocal, fmtMag, hm, num, placeName } from '../../lib/format';
+import { byMonth, isValidYear, regionCounts, topByMagnitude, YEAR_LIST_MIN_MAGNITUDE, yearCounts, yearData } from '../../lib/history';
+import { quakeUrl } from '../../lib/links';
+import { REGION_NAME } from '../../lib/region';
+import { REGIONS } from '../../lib/types';
+import type { Earthquake } from '../../lib/types';
+
+const year = Number(Astro.params.ano);
+if (!/^\d{4}$/.test(Astro.params.ano ?? '') || !isValidYear(year)) return new Response(null, { status: 404 });
+
+let data;
+try {
+  data = await yearData(workerEnv, year);
+} catch (e) {
+  console.warn(`[historico] ${year}:`, (e as Error).message);
+  return new Response(null, { status: 503, headers: { 'Retry-After': '300' } });
+}
+const [counts, split] = await Promise.all([yearCounts(workerEnv), regionCounts(workerEnv, year)]);
+const known = counts?.years.find((y) => y.year === year);
+if (!known && data.events.length === 0 && data.felt.length === 0) return new Response(null, { status: 404 });
+
+const current = year === new Date().getUTCFullYear();
+Astro.response.headers.set('Cache-Control', `public, max-age=${current ? 300 : 3600}`);
+
+const total = known?.n ?? data.events.length;
+const top = topByMagnitude(data.events, 10);
+const biggest = top[0] ?? null;
+const months = byMonth(data.events);
+const maxMonth = Math.max(1, ...months);
+const mc = counts?.completeness.find((c) => c.year === year)?.mc ?? null;
+const years = counts?.years.map((y) => y.year) ?? [];
+const idx = years.indexOf(year);
+const prev = idx > 0 ? years[idx - 1] : null;
+const next = idx >= 0 && idx < years.length - 1 ? years[idx + 1] : null;
+const SHOWN = 30;
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+const where = (q: Earthquake) => (q.region === 'outro' ? placeName(q.place) : `${placeName(q.place)}, ${REGION_NAME[q.region]}`);
+const t = (q: Earthquake) => Date.parse(q.time);
+const description =
+  `${num(total, 0)} sismos registados em Portugal em ${year}.` +
+  (biggest ? ` O maior teve magnitude ${fmtMag(biggest.magnitude)}, a ${dayMonth(t(biggest), biggest.region)}, ${where(biggest)}.` : '') +
+  (data.felt.length ? ` ${data.felt.length} ${data.felt.length === 1 ? 'foi sentido' : 'foram sentidos'}.` : '');
+---
+
+<Base title={`Sismos em Portugal em ${year}`} description={description} nav="historico">
+  <header class="hhead">
+    <h1><span class="yr">{year}</span>{num(total, 0)} {total === 1 ? 'sismo registado' : 'sismos registados'}{current ? ' até agora' : ''}.</h1>
+    <p>
+      {biggest ? <>O maior teve magnitude {fmtMag(biggest.magnitude)}, a {dayMonth(t(biggest), biggest.region)}, {quakeUrl(biggest) ? <a href={quakeUrl(biggest)!}>{where(biggest)}</a> : where(biggest)}.</> : 'Sem sismos de magnitude conhecida neste ano.'}
+      {' '}{data.felt.length === 0 ? 'Nenhum tem registo de ter sido sentido.' : `${data.felt.length} ${data.felt.length === 1 ? 'foi sentido' : 'foram sentidos'} pela população.`}
+    </p>
+    {mc != null && (
+      <p class="note">Neste ano o catálogo só está completo a partir de magnitude {fmtMag(mc)}, mais ou menos. Os sismos mais pequenos podem não ter sido registados.</p>
+    )}
+  </header>
+
+  {
+    Object.keys(split).length > 0 && (
+      <section class="hsec">
+        <h2>Por região</h2>
+        <div class="split">
+          {REGIONS.map((r) => <span><a href={`/${r}`}>{REGION_NAME[r]}</a><small>{num(split[r] ?? 0, 0)}</small></span>)}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    data.events.length > 0 && (
+      <section class="hsec">
+        <h2>Por mês</h2>
+        <div>
+          <svg class="months" viewBox="0 0 600 150" role="img" aria-label={`Sismos de magnitude ${fmtMag(YEAR_LIST_MIN_MAGNITUDE)} ou mais por mês em ${year}`}>
+            {months.map((n, i) => {
+              const h = (n / maxMonth) * 110;
+              return (
+                <g>
+                  <rect class={n === maxMonth && n > 0 ? 'max' : undefined} x={i * 50 + 8} y={120 - h} width="34" height={Math.max(h, n ? 1 : 0)} rx="2"><title>{MONTHS[i]}: {n}</title></rect>
+                  <text x={i * 50 + 25} y="140" text-anchor="middle">{MONTHS[i]}</text>
+                  {n > 0 && <text x={i * 50 + 25} y={114 - h} text-anchor="middle">{n}</text>}
+                </g>
+              );
+            })}
+          </svg>
+          <p class="note">Sismos de magnitude {fmtMag(YEAR_LIST_MIN_MAGNITUDE)} ou mais. Um mês muito acima dos outros costuma ser uma sequência de réplicas.</p>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    top.length > 0 && (
+      <section class="hsec">
+        <h2>Os maiores</h2>
+        <ul class="near">
+          {top.map((q) => (
+            <li><a href={quakeUrl(q) ?? undefined}><span class="serif">{fmtMag(q.magnitude)}</span><span class="mono">{dayMonth(t(q), q.region)} {hm(t(q), q.region)}</span><span>{where(q)}</span></a></li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    data.felt.length > 0 && (
+      <section class="hsec">
+        <h2>Sentidos</h2>
+        <ul class="near">
+          {data.felt.slice(0, 50).map((q) => (
+            <li><a href={quakeUrl(q) ?? undefined}><span class="serif">{fmtMag(q.magnitude)}</span><span class="mono">{dayMonth(t(q), q.region)} {hm(t(q), q.region)}</span><span>{where(q)}{q.intensity && ` · intensidade ${q.intensity}`}{q.local && ` · ${feltLocal(q.local)}`}</span></a></li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    data.events.length > 0 && (
+      <section class="hsec">
+        <h2>Todos, M ≥ {fmtMag(YEAR_LIST_MIN_MAGNITUDE)}</h2>
+        <div>
+          <ul class="qlist" id="qlist" style="padding-top:0">
+            {data.events.map((q, i) => {
+              const href = quakeUrl(q);
+              const Row = href ? 'a' : 'div';
+              return (
+                <li class={i >= SHOWN ? 'extra' : undefined}>
+                  <Row class="row" href={href ?? undefined}>
+                    <span class="qt"><time datetime={q.time}>{dayMonth(t(q), q.region)}<br />{hm(t(q), q.region)}</time></span>
+                    <span class="qm">{fmtMag(q.magnitude)}</span>
+                    <span class="qp">{placeName(q.place)}<small>{REGION_NAME[q.region]}{q.felt && ' · sentido'}</small></span>
+                    <span class="qd"><svg class="ico sm" aria-hidden="true"><use href="#i-profundidade" /></svg>{depthShort(q.depth)}</span>
+                  </Row>
+                </li>
+              );
+            })}
+          </ul>
+          {data.events.length > SHOWN && <button class="more" id="qmore" type="button">Mostrar os {num(data.events.length, 0)} sismos</button>}
+          {data.truncated && <p class="note">Mostram-se só os primeiros {num(data.events.length, 0)}.</p>}
+        </div>
+      </section>
+    )
+  }
+
+  <nav class="ynav" aria-label="Outros anos">
+    {prev ? <a href={`/historico/${prev}`} rel="prev">← {prev}</a> : <span></span>}
+    <a href="/historico">todos os anos</a>
+    {next ? <a href={`/historico/${next}`} rel="next">{next} →</a> : <span></span>}
+  </nav>
+</Base>
+
+<script>
+  document.addEventListener('click', (e) => {
+    const more = (e.target as HTMLElement).closest('#qmore');
+    if (!more) return;
+    document.getElementById('qlist')?.classList.add('all');
+    more.remove();
+  });
+</script>

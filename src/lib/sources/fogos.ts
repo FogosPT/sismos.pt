@@ -41,3 +41,37 @@ export interface SitemapPage {
 export async function fogosSitemap(page: number, minMagnitude: number, opts: FogosOptions = {}): Promise<SitemapPage> {
   return fetchJson<SitemapPage>(`${opts.base ?? FOGOS_BASE}/v2/seismic/sitemap?page=${page}&minmag=${minMagnitude}`, auth(opts), 15000);
 }
+
+export interface EventQuery {
+  from: string;
+  to?: string;
+  minmag?: number;
+  felt?: boolean;
+  region?: string;
+}
+
+/**
+ * Every earthquake matching the query, following the `next` cursor of
+ * v2/seismic/events (2000 per page) up to `maxPages`.
+ */
+export async function fogosEvents(q: EventQuery, opts: FogosOptions = {}, maxPages = 5): Promise<{ events: Earthquake[]; truncated: boolean }> {
+  const params = new URLSearchParams({ from: q.from, limit: '2000' });
+  if (q.to) params.set('to', q.to);
+  if (q.minmag != null) params.set('minmag', String(q.minmag));
+  if (q.felt != null) params.set('felt', q.felt ? '1' : '0');
+  if (q.region) params.set('region', q.region);
+
+  const events: Earthquake[] = [];
+  let before: string | null = null;
+  for (let page = 0; page < maxPages; page++) {
+    if (before) params.set('before', before);
+    const json = await fetchJson<{ success: boolean; data: Earthquake[]; next: string | null }>(
+      `${opts.base ?? FOGOS_BASE}/v2/seismic/events?${params}`, auth(opts), 15000,
+    );
+    if (!json?.success || !Array.isArray(json.data)) throw new Error('fogosapi: unexpected payload');
+    events.push(...json.data);
+    if (!json.next) return { events, truncated: false };
+    before = json.next;
+  }
+  return { events, truncated: true };
+}
