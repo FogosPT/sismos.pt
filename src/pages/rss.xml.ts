@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getCachedCatalogue } from '../lib/catalogue';
 import { workerEnv } from '../lib/env';
-import { depthLong, fmtMag, magTypeLabel, placeName } from '../lib/format';
+import { capitalise, depthLong, fmtMag, magTypeLabel, nearText, placeName } from '../lib/format';
 import { quakeUrl } from '../lib/links';
 import { REGION_NAME } from '../lib/region';
 import { isPt } from '../lib/summary';
@@ -24,7 +24,8 @@ ${items
   .map((q) => {
     const link = new URL(quakeUrl(q) ?? `/${q.region}`, site).href;
     const title = `M ${fmtMag(q.magnitude)} · ${placeName(q.place)}, ${REGION_NAME[q.region]}`;
-    const desc = `Magnitude ${fmtMag(q.magnitude)} (${magTypeLabel(q.magType)}), profundidade ${depthLong(q.depth)}.${q.felt ? ` Sentido${q.intensity ? `, intensidade máxima ${q.intensity}` : ''}.` : ''}`;
+    const near = nearText(q.nearest);
+    const desc = `Magnitude ${fmtMag(q.magnitude)} (${magTypeLabel(q.magType)}), profundidade ${depthLong(q.depth)}.${near ? ` ${capitalise(near)}.` : ''}${q.felt ? ` Sentido${q.intensity ? `, intensidade máxima ${q.intensity}` : ''}.` : ''}`;
     return `  <item>
     <title>${x(title)}</title>
     <link>${x(link)}</link>

@@ -1,4 +1,4 @@
-import { dayMonth, depthLong, fmtMag, hm, magTypeLabel, placeName } from './format';
+import { capitalise, dayMonth, depthLong, fmtMag, hm, magTypeLabel, nearText, placeName } from './format';
 import { REGION_NAME, TIMEZONE_NAME } from './region';
 import type { Earthquake } from './types';
 
@@ -45,6 +45,7 @@ export function quakeCard(q: Earthquake): Node {
       h('div', { fontFamily: 'Fraunces', fontSize: 250, lineHeight: 1, color: q.magnitude == null ? C.muted : C.signal, letterSpacing: -6 }, m),
       h('div', { flexDirection: 'column', gap: 18, flex: 1 }, [
         h('div', { fontFamily: 'Fraunces', fontSize: 56, lineHeight: 1.1, color: C.ink }, where),
+        ...(nearText(q.nearest) ? [h('div', { fontSize: 26, color: C.ink2 }, capitalise(nearText(q.nearest)!))] : []),
         h('div', { fontSize: 28, color: C.ink2 }, `${dayMonth(t, r)} · ${hm(t, r)} ${TIMEZONE_NAME[r]} · ${magTypeLabel(q.magType)}`),
         h('div', { fontSize: 26, color: C.muted }, `profundidade ${depthLong(q.depth)}${q.felt ? ` · sentido${q.intensity ? ` (${q.intensity})` : ''}` : ''}`),
       ]),

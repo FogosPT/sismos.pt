@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import QuakeData from '../components/QuakeData.astro';
 import { getCachedCatalogue } from '../lib/catalogue';
 import { workerEnv } from '../lib/env';
-import { dayMonth, depthShort, feltLocal, fmtMag, hm, placeName, relative } from '../lib/format';
+import { dayMonth, depthShort, feltLocal, fmtMag, hm, nearText, placeName, relative } from '../lib/format';
 import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
 import { quakeUrl } from '../lib/links';
 import { regionSummary } from '../lib/summary';
@@ -80,7 +80,7 @@ const hasVolcanoes = volcanoesIn(r).length > 0;
               <span class={`qm${q.magnitude == null ? ' prov' : ''}`}>{q.magnitude == null ? 'por rever' : fmtMag(q.magnitude)}</span>
               <span class="qp">
                 {placeName(q.place)}
-                <small>{q.felt ? `Sentido${q.intensity ? `, intensidade ${q.intensity}` : ''}${q.local ? ` · ${feltLocal(q.local)}` : ''}` : <span data-rel={q.time}>{relative(t, now)}</span>}</small>
+                <small>{q.felt ? `Sentido${q.intensity ? `, intensidade ${q.intensity}` : ''}${q.local ? ` · ${feltLocal(q.local)}` : ''}` : <span data-rel={q.time}>{relative(t, now)}</span>}{nearText(q.nearest) && ` · ${nearText(q.nearest)}`}</small>
               </span>
               <span class="qd">
                 {q.felt && <svg class="ico sm felt" aria-label="sentido"><use href="#i-sentido" /></svg>}
