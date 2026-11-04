@@ -51,3 +51,12 @@ Deploy manual (emergência): `npx wrangler login && npm run deploy`.
 - `src/lib/sources/` — normalizadores de fogosapi, IPMA, EMSC e USGS.
 - `src/scripts/` — sismógrafo (canvas) e mapas (d3-geo), no cliente.
 - `src/data/geo.json` — costa (Natural Earth 10m recortada), fronteira PT–ES e limites de placas (PB2002).
+
+## Licença
+
+Código aberto em **[GNU AGPL-3.0-or-later](LICENSE)**, com um termo adicional de atribuição (secção 7(b)):
+qualquer cópia, versão modificada ou serviço em rede baseado neste código tem de publicar o código-fonte e
+manter visível "Baseado no sismos.pt — VOST Portugal, por Tomahock" com o link para este repositório.
+Os dados de terceiros incluídos (falhas GEM em CC BY-SA 4.0, Natural Earth, PB2002, Smithsonian GVP)
+mantêm as licenças próprias — ver [NOTICE](NOTICE).
+

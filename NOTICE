@@ -1,0 +1,49 @@
+sismos.pt
+Copyright (C) 2026 Tomahock e contribuidores — VOST Portugal / Fogos.pt
+https://github.com/FogosPT/sismos.pt
+
+Este programa é software livre: pode redistribuí-lo e/ou modificá-lo nos
+termos da GNU Affero General Public License, publicada pela Free Software
+Foundation, na versão 3 da licença ou (à sua escolha) em qualquer versão
+posterior. Ver o ficheiro LICENSE.
+
+Em particular, quem disponibilizar este programa ou uma versão modificada
+numa rede (por exemplo como site ou API) tem de oferecer aos utilizadores o
+código-fonte correspondente (secção 13 da AGPL-3.0).
+
+-------------------------------------------------------------------------------
+Termo adicional (secção 7(b) da GNU AGPL-3.0) — atribuição
+-------------------------------------------------------------------------------
+
+Qualquer cópia ou versão modificada deste programa, e qualquer serviço em rede
+nele baseado, tem de manter, de forma visível na interface (por exemplo no
+rodapé) e na documentação, a seguinte atribuição com a ligação ativa:
+
+    Baseado no sismos.pt — VOST Portugal, por Tomahock
+    https://github.com/FogosPT/sismos.pt
+
+-------------------------------------------------------------------------------
+Dados de terceiros incluídos no repositório (mantêm as suas licenças)
+-------------------------------------------------------------------------------
+
+src/data/faults.json
+    Derivado de GEM Global Active Faults Database, Global Earthquake Model
+    (GEM) Foundation — https://github.com/GEMScienceTools/gem-global-active-faults
+    Licença: Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0).
+    Este ficheiro, e quaisquer derivados dele, continuam em CC BY-SA 4.0.
+
+src/data/volcanoes.json
+    Smithsonian Institution, Global Volcanism Program, Volcanoes of the World
+    — https://volcano.si.edu. Uso com citação da fonte.
+
+src/data/geo.json
+    Linha de costa e fronteiras: Natural Earth (domínio público) —
+    https://www.naturalearthdata.com
+    Limites de placas: Bird, P. (2003), An updated digital model of plate
+    boundaries, Geochemistry Geophysics Geosystems 4(3), 1027 (PB2002),
+    via https://github.com/fraxen/tectonicplates.
+
+Os dados sísmicos mostrados pelo site (IPMA, EMSC, USGS, GFZ GEOFON, IGN, ISC)
+não fazem parte do repositório; vêm da API do Fogos.pt
+(https://github.com/FogosPT/fogosapi) e de cada instituição, com os termos
+de cada uma.
