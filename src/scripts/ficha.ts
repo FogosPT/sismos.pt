@@ -3,11 +3,15 @@ import { create } from 'd3-selection';
 import { depthKnown, fmtMag, num, radius } from '../lib/format';
 import { latencyLabel } from '../lib/detail';
 import type { PtRegion, Region } from '../lib/types';
+import { detailZoom, placeFrom } from '../lib/mapframe';
 import { COAST, coastFor, projectionAround, projectionFor, ringPath } from './geo';
 import { redrawOn } from './ui';
 
 interface FichaData {
   q: { t: number; lat: number; lon: number; d: number | null; m: number | null; r: Region };
+  /** Distance (km) and bearing (place → epicentre) of the nearest place, to frame the detailed map. */
+  nearKm?: number | null;
+  nearBearing?: string | null;
   moho: number;
   sources: { name: string; d: number | null; m: number | null; mt: string | null; latency: number | null; preferred: boolean }[];
 }
@@ -118,7 +122,65 @@ function drawLocator(box: HTMLElement, f: FichaData) {
   box.replaceChildren(svg.node()!);
 }
 
+/* ---------- detailed map (opened from the locator) ---------- */
+
+const isDark = () => {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+};
+const styleUrl = () => `https://tiles.openfreemap.org/styles/${isDark() ? 'dark' : 'positron'}`;
+
+function wireDetailMap(f: FichaData) {
+  const open = document.getElementById('locopen');
+  const dialog = document.getElementById('locdialog') as HTMLDialogElement | null;
+  const box = document.getElementById('locmap');
+  if (!open || !dialog || !box) return;
+
+  let map: import('maplibre-gl').Map | null = null;
+  open.addEventListener('click', async () => {
+    dialog.showModal();
+    if (map) {
+      map.resize();
+      return;
+    }
+    const [maplibregl] = await Promise.all([import('maplibre-gl'), import('maplibre-gl/dist/maplibre-gl.css')]);
+    const m = new maplibregl.Map({
+      container: box,
+      style: styleUrl(),
+      center: [f.q.lon, f.q.lat],
+      zoom: detailZoom(f.q.r, f.nearKm ?? null),
+      attributionControl: { compact: true },
+    });
+    // Offshore events: frame the epicentre together with the nearest place, so the map is not all sea.
+    const place = f.nearKm && f.nearBearing && f.nearKm < 150 ? placeFrom(f.q.lat, f.q.lon, f.nearKm, f.nearBearing) : null;
+    if (place) {
+      const [lon2, lat2] = place;
+      m.fitBounds(
+        [[Math.min(f.q.lon, lon2), Math.min(f.q.lat, lat2)], [Math.max(f.q.lon, lon2), Math.max(f.q.lat, lat2)]],
+        { padding: 80, maxZoom: 11, animate: false },
+      );
+    }
+    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+    const el = document.createElement('div');
+    el.className = 'epi';
+    el.setAttribute('aria-label', 'Epicentro');
+    new maplibregl.Marker({ element: el }).setLngLat([f.q.lon, f.q.lat]).addTo(m);
+    addEventListener('themechange', () => m.setStyle(styleUrl()));
+    map = m;
+  });
+
+  document.getElementById('locclose')?.addEventListener('click', () => dialog.close());
+  // Dev only (stripped from production builds): ?abrir-mapa opens it on load, for screenshots.
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has('abrir-mapa')) open.click();
+  // Click on the backdrop closes it too.
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+}
+
 if (data) {
+  wireDetailMap(data);
   const render = () => {
     const xs = document.getElementById('xsec');
     const tl = document.getElementById('tl');
