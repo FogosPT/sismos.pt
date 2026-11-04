@@ -88,6 +88,11 @@ main{display:block; animation:fadein .5s ease both}
 .prose h2{font-family:var(--serif); font-weight:400; font-size:clamp(22px,2.4vw,30px); margin:1.6em 0 .4em}
 .prose p, .prose li{color:var(--ink-2)}
 .prose a{text-decoration-color:var(--rule); text-underline-offset:.18em}
+.prose h3{font-family:var(--sans); font-weight:500; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:1.8em 0 .4em}
+.prose ul{padding-left:1.1em; margin:.4em 0}
+.prose li{margin:.35em 0}
+.prose li::marker{color:var(--signal)}
+.prose b{color:var(--ink); font-weight:600}
 
 /* AGORA */
 .drum{position:relative; margin-top:clamp(8px,3vh,28px); margin-inline:calc(-1 * clamp(16px,4vw,56px))}
