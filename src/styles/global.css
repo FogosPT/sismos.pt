@@ -71,12 +71,15 @@ header.top{display:flex; align-items:center; justify-content:space-between; gap:
 .status .dot{width:7px;height:7px;border-radius:50%;background:var(--signal); box-shadow:0 0 0 0 var(--signal-soft); animation:beat 2.4s ease-out infinite}
 @keyframes beat{0%{box-shadow:0 0 0 0 var(--signal-soft)}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
 nav.main{display:flex; align-items:center; gap:clamp(12px,2.4vw,30px); font-size:14.5px}
-nav.main a{text-decoration:none; color:var(--ink-2); padding-block:4px; border-bottom:1px solid transparent}
+nav.main a{text-decoration:none; color:var(--ink-2); padding-block:4px; border-bottom:1px solid transparent; white-space:nowrap}
 nav.main a[aria-current="page"]{color:var(--ink); border-bottom-color:var(--ink)}
 nav.main a:hover{color:var(--ink)}
 .iconbtn{appearance:none; background:none; border:0; color:var(--ink-2); padding:6px; margin:-6px; cursor:pointer; border-radius:50%}
 .iconbtn:hover{color:var(--ink)}
 @media (max-width:640px){ .status .when{display:none} nav.main a.hide-sm{display:none} }
+/* "O que fazer" stays visible on phones (safety); "Estatísticas" moves to the footer on the narrowest. */
+@media (max-width:480px){ nav.main{gap:12px; font-size:14px} nav.main a.hide-xs{display:none} }
+@media (max-width:400px){ header.top{gap:10px} nav.main{gap:10px; font-size:13.5px} .brand b{font-size:21px} }
 @media (max-width:440px){ .status span:not(.dot){position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)} }
 
 /* páginas */
