@@ -84,8 +84,9 @@ const current = (k: string) => (nav === k ? 'page' : undefined);
         <nav class="main" aria-label="Principal">
           <a href="/" aria-current={current('agora')}>Agora</a>
           <a href={`/${mapRegion}`} aria-current={current('mapa')}>Mapa</a>
-          <a href="/estatisticas" aria-current={current('estatisticas')}>Estatísticas</a>
+          <a href="/estatisticas" class="hide-xs" aria-current={current('estatisticas')}>Estatísticas</a>
           <a href="/historico" class="hide-sm" aria-current={current('historico')}>Histórico</a>
+          <a href="/o-que-fazer" aria-current={current('o-que-fazer')}>O que fazer</a>
           <a href="/fontes" class="hide-sm" aria-current={current('fontes')}>Fontes</a>
           <button class="iconbtn" id="themebtn" type="button" aria-label="Alternar tema claro/escuro"><svg class="ico"><use href="#i-tema" /></svg></button>
         </nav>
@@ -109,7 +110,7 @@ const current = (k: string) => (nav === k ? 'page' : undefined);
           <p class="credits" style="margin:14px 0 0">
             Made with ♥ by <a href="https://twitter.com/tomahock">Tomahock</a> · Powered by <a href="https://vost.pt">VOST Portugal</a> · Dados:{' '}
             <a href="https://www.ipma.pt">IPMA</a>, <a href="https://www.seismicportal.eu">EMSC</a>, <a href="https://earthquake.usgs.gov">USGS</a>,{' '}
-            <a href="https://geofon.gfz.de">GFZ</a>, <a href="https://www.ign.es">IGN</a>, <a href="https://www.isc.ac.uk">ISC</a> · <a href="/o-que-fazer">O que fazer em caso de sismo</a> · <a href="/historico">Histórico</a> · <a href="/sobre">Sobre</a> · <a href="https://github.com/FogosPT/sismos.pt">Código aberto (AGPL-3.0)</a>
+            <a href="https://geofon.gfz.de">GFZ</a>, <a href="https://www.ign.es">IGN</a>, <a href="https://www.isc.ac.uk">ISC</a> · <a href="/o-que-fazer">O que fazer em caso de sismo</a> · <a href="/estatisticas">Estatísticas</a> · <a href="/historico">Histórico</a> · <a href="/sobre">Sobre</a> · <a href="https://github.com/FogosPT/sismos.pt">Código aberto (AGPL-3.0)</a>
           </p>
         </div>
       </footer>
