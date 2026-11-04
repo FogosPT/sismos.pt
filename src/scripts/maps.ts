@@ -1,7 +1,8 @@
 import type { GeoProjection } from 'd3-geo';
 import { select, type Selection } from 'd3-selection';
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
-import { radius } from '../lib/format';
+import { FAULTS, eruptionLabel, rateLabel, slipLabel, volcanoesIn, type Fault, type Volcano } from '../lib/faults';
+import { capitalise, escapeHtml, radius } from '../lib/format';
 import { PLACES } from '../lib/region';
 import type { Row } from '../lib/summary';
 import type { PtRegion } from '../lib/types';
@@ -61,7 +62,17 @@ function drawLocator(el: SVGSVGElement, q: Row, rows: Row[]) {
 
 /* ---------- region page: full map ---------- */
 
-const state = { color: 'age' as 'age' | 'depth', plates: true, heat: false, felt: false };
+const faultTip = (f: Fault) => {
+  const rate = rateLabel(f.rate);
+  return `<b>Falha ativa</b>${escapeHtml(capitalise(slipLabel(f.type)))}${f.name ? ` · ${escapeHtml(f.name)}` : ''}<span class="mono">${rate ? `${rate} · ` : ''}GEM</span>`;
+};
+
+const volcanoTip = (v: Volcano) =>
+  `<b>${escapeHtml(v.name)}</b>${escapeHtml(capitalise(v.type))}<span class="mono">${escapeHtml(eruptionLabel(v.lastEruption))} · GVP ${v.gvp}</span>`;
+
+
+// Faults start hidden to keep the map calm; volcanoes are shown where there are any.
+const state = { color: 'age' as 'age' | 'depth', plates: true, heat: false, felt: false, faults: false, volcanoes: true };
 
 function colour(q: Row, now: number) {
   if (state.color === 'depth') return { c: 'var(--signal)', o: 1 - 0.78 * Math.min((q.d ?? 0) / 30, 1) };
@@ -86,6 +97,17 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
   if (r === 'continente') g.append('path').attr('class', 'border').attr('d', ringPath(BORDERS, p, false));
   const plates = g.append('path').attr('class', 'plate').attr('d', ringPath(PLATES, p, false)).style('display', state.plates ? '' : 'none');
 
+  // Active faults (GEM): thin dashed lines under the earthquakes, with a wider
+  // invisible stroke for hovering.
+  const faults = g.append('g').attr('class', 'faults').style('display', state.faults ? '' : 'none');
+  FAULTS[r].forEach((f) => {
+    const d = ringPath(f.lines, p, false);
+    faults.append('path').attr('class', 'fault').attr('d', d);
+    faults.append('path').attr('class', 'fault-hit').attr('d', d)
+      .on('mousemove', (e: MouseEvent) => showTip(faultTip(f), e.clientX, e.clientY))
+      .on('mouseleave', hideTip);
+  });
+
   const qs = all.filter((q) => !state.felt || q.felt).slice().sort((a, b) => a.t - b.t);
   const heatR = small ? 10 : 16;
   const heat = g.append('g').attr('filter', 'url(#blur)').style('display', state.heat ? '' : 'none');
@@ -100,6 +122,16 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
     const t = lab.append('g').attr('class', 'lb').attr('data-x', x).attr('data-y', y).attr('transform', `translate(${x},${y})`);
     if (!area) t.append('circle').attr('r', 1.8).style('fill', 'var(--muted)');
     t.append('text').attr('class', 'mlabel').attr('x', area ? 0 : 6).attr('y', area ? 0 : 3.5).attr('text-anchor', area ? 'middle' : 'start').text(n);
+  });
+
+  // Holocene volcanoes (GVP), fixed-size icons like the labels.
+  const volcanoes = g.append('g').style('display', state.volcanoes ? '' : 'none');
+  volcanoesIn(r).forEach((v) => {
+    const [x, y] = p([v.lon, v.lat])!;
+    volcanoes.append('g').attr('class', 'vg').attr('data-x', x).attr('data-y', y).attr('transform', `translate(${x},${y})`)
+      .html('<use href="#i-vulcao" x="-8" y="-8" width="16" height="16"/><circle class="v-hit" r="11"/>')
+      .on('mousemove', (e: MouseEvent) => showTip(volcanoTip(v), e.clientX, e.clientY))
+      .on('mouseleave', hideTip);
   });
 
   const latest = qs.at(-1);
@@ -125,7 +157,7 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
   const behaviour = zoom<SVGSVGElement, unknown>().scaleExtent([1, 12]).translateExtent([[-w * 0.2, -h * 0.2], [w * 1.2, h * 1.2]]).on('zoom', (e) => {
       const t = e.transform;
       g.attr('transform', t);
-      g.selectAll<SVGGElement, unknown>('.qg,.lb').attr('transform', function () {
+      g.selectAll<SVGGElement, unknown>('.qg,.lb,.vg').attr('transform', function () {
         return `translate(${this.dataset.x},${this.dataset.y}) scale(${1 / t.k})`;
       });
       heat.selectAll('circle').attr('r', heatR / t.k);
@@ -142,6 +174,17 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
   $('ly-plates').onchange = (e) => { state.plates = (e.target as HTMLInputElement).checked; plates.style('display', state.plates ? '' : 'none'); };
   $('ly-heat').onchange = (e) => { state.heat = (e.target as HTMLInputElement).checked; heat.style('display', state.heat ? '' : 'none'); };
   $('ly-felt').onchange = (e) => { state.felt = (e.target as HTMLInputElement).checked; drawRegion(el, r, all, now); };
+  // Only rendered for regions that have faults / volcanoes in view.
+  const lyFaults = $('ly-faults');
+  if (lyFaults) {
+    lyFaults.checked = state.faults;
+    lyFaults.onchange = (e) => { state.faults = (e.target as HTMLInputElement).checked; faults.style('display', state.faults ? '' : 'none'); };
+  }
+  const lyVolcanoes = $('ly-volcanoes');
+  if (lyVolcanoes) {
+    lyVolcanoes.checked = state.volcanoes;
+    lyVolcanoes.onchange = (e) => { state.volcanoes = (e.target as HTMLInputElement).checked; volcanoes.style('display', state.volcanoes ? '' : 'none'); };
+  }
   document.querySelectorAll<HTMLButtonElement>('.layers .seg button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.color === state.color));
     b.onclick = () => { state.color = b.dataset.color as 'age' | 'depth'; drawRegion(el, r, all, now); };

@@ -7,6 +7,7 @@ import { dayMonth, depthShort, feltLocal, fmtMag, hm, placeName, relative } from
 import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
 import { quakeUrl } from '../lib/links';
 import { regionSummary } from '../lib/summary';
+import { faultsIn, volcanoesIn } from '../lib/faults';
 import { REGIONS, type PtRegion } from '../lib/types';
 
 const r = Astro.params.regiao as PtRegion;
@@ -26,6 +27,8 @@ const summary =
   (largest ? ` O maior teve magnitude ${fmtMag(largest.magnitude)}, a ${dayMonth(Date.parse(largest.time), r)}.` : '') +
   ` ${felt === 0 ? 'Nenhum foi sentido' : felt === 1 ? '1 foi sentido' : `${felt} foram sentidos`}.`;
 const SHOWN = 12;
+const hasFaults = faultsIn(r).length > 0;
+const hasVolcanoes = volcanoesIn(r).length > 0;
 ---
 
 <Base title={`Sismos ${r === 'continente' ? 'em Portugal Continental' : r === 'acores' ? 'nos Açores' : 'na Madeira'}`}
@@ -48,6 +51,15 @@ const SHOWN = 12;
         <label><input type="checkbox" id="ly-plates" checked /> Limites de placas</label>
         <label><input type="checkbox" id="ly-heat" /> Densidade</label>
         <label><input type="checkbox" id="ly-felt" /> Só sismos sentidos</label>
+        {hasFaults && <label><input type="checkbox" id="ly-faults" /> Falhas ativas</label>}
+        {hasVolcanoes && <label><input type="checkbox" id="ly-volcanoes" checked /> Vulcões</label>}
+        {(hasFaults || hasVolcanoes) && (
+          <p class="credit">
+            {hasFaults && <>Falhas: <a href="https://github.com/GEMScienceTools/gem-global-active-faults">GEM</a> (CC BY-SA 4.0)</>}
+            {hasFaults && hasVolcanoes && ' · '}
+            {hasVolcanoes && <>Vulcões: <a href="https://volcano.si.edu">Smithsonian GVP</a></>}
+          </p>
+        )}
         <div class="seg"><span>Cor por</span><button type="button" data-color="age" aria-pressed="true">idade</button><button type="button" data-color="depth" aria-pressed="false">profundidade</button></div>
       </div>
     </div>
