@@ -140,7 +140,15 @@ function wireDetailMap(f: FichaData) {
   // One initialisation, shared by every click: reopening the dialog while
   // MapLibre is still downloading must not build a second map in the box.
   const init = onceAsync(async (): Promise<import('maplibre-gl').Map> => {
-    const [maplibregl] = await Promise.all([import('maplibre-gl'), import('maplibre-gl/dist/maplibre-gl.css')]);
+    const [maplibregl, worker] = await Promise.all([
+      import('maplibre-gl'),
+      // MapLibre 6 looks for maplibre-gl-worker.mjs next to its own module,
+      // which no longer exists once Vite bundles it: ship the (self-contained)
+      // worker as an asset and point MapLibre at it.
+      import('maplibre-gl/dist/maplibre-gl-worker.mjs?url'),
+      import('maplibre-gl/dist/maplibre-gl.css'),
+    ]);
+    maplibregl.setWorkerUrl(worker.default);
     const m = new maplibregl.Map({
       container: box,
       style: styleUrl(),
