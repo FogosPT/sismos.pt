@@ -63,6 +63,8 @@ const jsonLd = {
 };
 const data = {
   q: { t, lat: q.lat, lon: q.lon, d: q.depth, m: q.magnitude, r },
+  nearKm: (q.nearest ?? q.nearestPlaces?.[0])?.km ?? null,
+  nearBearing: (q.nearest ?? q.nearestPlaces?.[0])?.bearing ?? null,
   moho: MOHO[r],
   sources: rows.map((x) => ({ name: SOURCE_NAME[x.name] ?? x.name.toUpperCase(), d: x.report.depth, m: x.report.magnitude, mt: x.magType, latency: x.latencyMs, preferred: x.preferred })),
 };
@@ -128,7 +130,18 @@ const data = {
     <section class="fsec">
       <h2><svg class="ico"><use href="#i-epicentro" /></svg>Onde</h2>
       <div>
-        <div id="loc"></div>
+        <button type="button" class="locbtn" id="locopen" aria-haspopup="dialog" aria-controls="locdialog" aria-label="Ver a localização num mapa com mais detalhe">
+          <div id="loc"></div>
+          <span class="tag">ver em detalhe →</span>
+        </button>
+        <dialog class="locdlg" id="locdialog" aria-label={`Localização do epicentro: ${where}`}>
+          <div class="locdlg-head">
+            <span class="locdlg-title">{where}</span>
+            <a href={`https://www.openstreetmap.org/?mlat=${q.lat}&mlon=${q.lon}#map=11/${q.lat}/${q.lon}`} target="_blank" rel="noopener noreferrer">abrir no OpenStreetMap</a>
+            <button type="button" class="iconbtn" id="locclose" aria-label="Fechar">✕</button>
+          </div>
+          <div id="locmap" class="locmap"></div>
+        </dialog>
         {nearAll.length > 0 && (
           <ul class="places">
             {nearAll.map((p) => <li><span class="mono">{num(p.km, 0)} km {p.bearing}</span><span>{placeLabel(p)}</span><small>{p.kind}</small></li>)}
