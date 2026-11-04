@@ -4,6 +4,7 @@ import { depthKnown, fmtMag, num, radius } from '../lib/format';
 import { latencyLabel } from '../lib/detail';
 import type { PtRegion, Region } from '../lib/types';
 import { detailZoom, placeFrom } from '../lib/mapframe';
+import { onceAsync } from '../lib/once';
 import { COAST, coastFor, projectionAround, projectionFor, ringPath } from './geo';
 import { redrawOn } from './ui';
 
@@ -136,13 +137,9 @@ function wireDetailMap(f: FichaData) {
   const box = document.getElementById('locmap');
   if (!open || !dialog || !box) return;
 
-  let map: import('maplibre-gl').Map | null = null;
-  open.addEventListener('click', async () => {
-    dialog.showModal();
-    if (map) {
-      map.resize();
-      return;
-    }
+  // One initialisation, shared by every click: reopening the dialog while
+  // MapLibre is still downloading must not build a second map in the box.
+  const init = onceAsync(async (): Promise<import('maplibre-gl').Map> => {
     const [maplibregl] = await Promise.all([import('maplibre-gl'), import('maplibre-gl/dist/maplibre-gl.css')]);
     const m = new maplibregl.Map({
       container: box,
@@ -167,7 +164,17 @@ function wireDetailMap(f: FichaData) {
     el.setAttribute('aria-label', 'Epicentro');
     new maplibregl.Marker({ element: el }).setLngLat([f.q.lon, f.q.lat]).addTo(m);
     addEventListener('themechange', () => m.setStyle(styleUrl()));
-    map = m;
+    return m;
+  });
+
+  open.addEventListener('click', async () => {
+    dialog.showModal();
+    try {
+      (await init()).resize();
+    } catch {
+      // Offline or the download failed: say so; the next click retries.
+      box.textContent = 'Não foi possível carregar o mapa. Tenta outra vez.';
+    }
   });
 
   document.getElementById('locclose')?.addEventListener('click', () => dialog.close());
