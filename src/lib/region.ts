@@ -10,12 +10,12 @@ const POLYGONS: Record<PtRegion, [number, number][]> = {
     [-6.19, 41.58], [-6.93, 41.03], [-6.83, 40.6], [-6.95, 39.66], [-7.03, 38.87],
     [-6.93, 38.2], [-7.3, 38.0], [-7.4, 37.17], [-7.4, 35.5], [-12.5, 35.5],
   ],
-  acores: [[-33.0, 41.0], [-23.5, 41.0], [-23.5, 35.5], [-33.0, 35.5]],
+  acores: [[-33.0, 45.0], [-23.5, 45.0], [-23.5, 35.5], [-33.0, 35.5]],
   madeira: [[-18.5, 33.8], [-15.0, 33.8], [-15.0, 29.5], [-18.5, 29.5]],
 };
 
 /** Area polled by fogosapi (SeismicSource::BBOX). */
-export const BBOX = { minLat: 29.0, maxLat: 44.5, minLon: -33.0, maxLon: -5.5 };
+export const BBOX = { minLat: 29.0, maxLat: 45.5, minLon: -33.0, maxLon: -5.5 };
 
 function contains(poly: [number, number][], x: number, y: number): boolean {
   let inside = false;

@@ -16,6 +16,7 @@ describe('region', () => {
     [36.6, -11.5, 'continente'],
     [42.462, -6.602, 'outro'],
     [37.74, -25.67, 'acores'],
+    [43.799, -28.966, 'acores'], // Crista Médio-Atlântica, M5.4 2026-11-19
     [30.14, -15.87, 'madeira'],
     [28.1, -15.4, 'outro'],
   ])('%f,%f → %s (same as fogosapi)', (lat, lon, r) => expect(classify(lat, lon)).toBe(r));
