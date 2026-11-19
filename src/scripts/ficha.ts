@@ -111,7 +111,7 @@ function drawLocator(box: HTMLElement, f: FichaData) {
   // Outside the three regions there is no fixed extent: centre on the epicentre.
   const outside = f.q.r === 'outro';
   const r = outside ? coastFor(f.q.lat, f.q.lon) : (f.q.r as PtRegion);
-  const p = outside ? projectionAround(f.q.lat, f.q.lon, W, H, 16, 5) : projectionFor(r, W, H, 16);
+  const p = outside ? projectionAround(f.q.lat, f.q.lon, W, H, 16, 5) : projectionFor(r, W, H, 16, [[f.q.lon, f.q.lat]]);
   const svg = create('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Localização do epicentro')
     .style('display', 'block').style('width', '100%').style('max-width', `${W}px`).style('height', 'auto');
   svg.append('clipPath').attr('id', 'loc-clip').append('rect').attr('width', W).attr('height', H);

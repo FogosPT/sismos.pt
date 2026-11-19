@@ -33,7 +33,7 @@ function drawLocator(el: SVGSVGElement, q: Row, rows: Row[]) {
   const h = el.getBoundingClientRect().width < 500 ? 480 : 512;
   const svg = select(el).attr('viewBox', `0 0 ${w} ${h}`);
   svg.selectAll('*').remove();
-  const p = projectionFor(r, w, h, 28);
+  const p = projectionFor(r, w, h, 28, [[q.lon, q.lat]]);
   graticule(svg.append('g'), p, w, h);
   svg.append('path').attr('class', 'land').attr('d', ringPath(COAST[r], p));
   if (r === 'continente') svg.append('path').attr('class', 'border').attr('d', ringPath(BORDERS, p, false));
@@ -89,7 +89,7 @@ function drawRegion(el: SVGSVGElement, r: PtRegion, all: Row[], now: number) {
   const previous = zoomTransform(el);
   const svg = select(el).attr('viewBox', `0 0 ${w} ${h}`);
   svg.selectAll('*').remove();
-  const p = projectionFor(r, w, h, small ? 20 : 48);
+  const p = projectionFor(r, w, h, small ? 20 : 48, all.map((q) => [q.lon, q.lat]));
   svg.append('defs').html(`<filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${small ? 7 : 11}"/></filter>`);
   const g = svg.append('g');
   graticule(g.append('g'), p, w, h, 1);

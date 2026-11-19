@@ -8,8 +8,25 @@ export const COAST = geo.COAST as unknown as Record<PtRegion, Ring[]>;
 export const BORDERS = geo.BORDERS as unknown as Ring[];
 export const PLATES = geo.PLATES as unknown as Ring[];
 
-export function projectionFor(r: PtRegion, w: number, h: number, pad: number): GeoProjection {
-  const b = EXTENT[r];
+/** Margin around epicentres that fall outside the extent, degrees. */
+const OUTLIER_MARGIN = 0.6;
+
+/** The region's extent, grown to include `points` ([lon, lat]) that fall outside it. */
+export function extentWith(r: PtRegion, points: [number, number][] = []): [number, number, number, number] {
+  let [x0, y0, x1, y1] = EXTENT[r];
+  for (const [lon, lat] of points) {
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+    x0 = Math.min(x0, lon - (lon < x0 ? OUTLIER_MARGIN : 0));
+    x1 = Math.max(x1, lon + (lon > x1 ? OUTLIER_MARGIN : 0));
+    y0 = Math.min(y0, lat - (lat < y0 ? OUTLIER_MARGIN : 0));
+    y1 = Math.max(y1, lat + (lat > y1 ? OUTLIER_MARGIN : 0));
+  }
+  return [x0, y0, x1, y1];
+}
+
+/** The region's fixed view, grown when some of `points` fall outside it (e.g. the ridge north of the Azores). */
+export function projectionFor(r: PtRegion, w: number, h: number, pad: number, points: [number, number][] = []): GeoProjection {
+  const b = extentWith(r, points);
   return geoMercator().fitExtent([[pad, pad], [w - pad, h - pad]], { type: 'MultiPoint', coordinates: [[b[0], b[1]], [b[2], b[3]]] });
 }
 
