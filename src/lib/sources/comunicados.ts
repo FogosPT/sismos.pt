@@ -10,8 +10,10 @@ import { fetchJson } from './http';
  * Quirks:
  * - The title carries the origin as "dd-mm-yyyy hh:mm" in *local* time of the
  *   region (minute precision); the zone comes from the title or the network.
- * - IPMA's "Data de Edição" is UTC. The archive's `pubDate` reads it as Lisbon
- *   time (1 h early in summer), so the edition date is preferred.
+ * - IPMA's "Data de Edição" is UTC and is preferred. The archive's `pubDate`
+ *   was read as Lisbon time (1 h early in summer) until
+ *   vostpt/comunicados-ipma.vost.pt#1; it is only a fallback, used for list
+ *   ordering, so it is taken as is.
  * - One archive id can hold different earthquakes of the same day as
  *   successive versions, so matching is done per version.
  */
@@ -86,12 +88,6 @@ export function editionDate(html: string | null): string | null {
   return new Date(Date.UTC(+m[3], mon, +m[1], +m[4], +m[5], +m[6])).toISOString();
 }
 
-/** The archive's pubDate is IPMA's UTC edition read as Lisbon time: undo it. */
-export const fixPubDate = (iso: string) => {
-  const t = Date.parse(iso);
-  return new Date(t + zoneOffset('Europe/Lisbon', t)).toISOString();
-};
-
 /** Body without the repeated title and IPMA's standard disclaimer. */
 export function cleanText(body: string | null): string | null {
   if (!body) return null;
@@ -117,7 +113,7 @@ export function parseVersion(id: string, v: Pick<ApiVersion, 'versionNumber' | '
     title,
     local: `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}`,
     zones: zonesOf(title, body),
-    published: editionDate(v.descriptionHtml ?? null) ?? fixPubDate(v.pubDate),
+    published: editionDate(v.descriptionHtml ?? null) ?? new Date(v.pubDate).toISOString(),
     felt: /sentido/i.test(title),
     magnitude: mag ? parseFloat(mag[1].replace(',', '.')) : null,
     text: cleanText(v.bodyText ?? null),
@@ -164,11 +160,24 @@ export function assign(cs: Comunicado[], quakes: Pick<Earthquake, 'id' | 'time' 
   return out;
 }
 
-async function list(params: Record<string, string>): Promise<ApiItem[]> {
-  const qs = new URLSearchParams({ category: 'sismologia', ...params });
-  const json = await fetchJson<{ items: ApiItem[] }>(`${COMUNICADOS_BASE}/api/comunicados?${qs}`, {}, 6000);
-  if (!Array.isArray(json?.items)) throw new Error('comunicados: unexpected payload');
-  return json.items;
+/** Slack on the archive's pubDate (it may be up to 1 h off). */
+const PUB_SLACK_MS = 2 * 36e5;
+
+/** Archive entries published in [from, to], newest first, following the `nextBefore` cursor. */
+async function list(from: Date, to: Date | null, limit: number, maxPages: number): Promise<ApiItem[]> {
+  const lower = from.getTime() - PUB_SLACK_MS;
+  const out = new Map<string, ApiItem>();
+  let before = to?.toISOString() ?? null;
+  for (let page = 0; page < maxPages; page++) {
+    const qs = new URLSearchParams({ category: 'sismologia', limit: String(limit), ...(before ? { before } : {}) });
+    const json = await fetchJson<{ items: ApiItem[]; nextBefore?: string | null }>(`${COMUNICADOS_BASE}/api/comunicados?${qs}`, {}, 6000);
+    if (!Array.isArray(json?.items)) throw new Error('comunicados: unexpected payload');
+    for (const i of json.items) if (Date.parse(i.pubDate) >= lower) out.set(i.id, i);
+    const last = json.items.at(-1);
+    if (!json.nextBefore || !last || Date.parse(last.pubDate) < lower) break;
+    before = json.nextBefore;
+  }
+  return [...out.values()];
 }
 
 async function versions(id: string): Promise<Comunicado[]> {
@@ -182,8 +191,8 @@ async function versions(id: string): Promise<Comunicado[]> {
  * several versions are always fetched, since older versions may be other
  * earthquakes.
  */
-export async function comunicados(from: Date, to: Date | null, detail: (c: Comunicado) => boolean = () => false, limit = 100): Promise<Comunicado[]> {
-  const items = (await list({ limit: String(limit), ...(to ? { before: to.toISOString() } : {}) })).filter((i) => Date.parse(i.pubDate) >= from.getTime() - 36e5);
+export async function comunicados(from: Date, to: Date | null, detail: (c: Comunicado) => boolean = () => false, limit = 100, maxPages = 5): Promise<Comunicado[]> {
+  const items = await list(from, to, limit, maxPages);
   const out = await Promise.all(
     items.map(async (i) => {
       const c = parseVersion(i.id, { versionNumber: i.versionCount, title: i.title, pubDate: i.pubDate });

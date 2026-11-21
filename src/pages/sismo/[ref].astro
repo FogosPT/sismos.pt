@@ -1,8 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { edgeCached } from '../../lib/cache';
-import { fogosOptions, getCachedCatalogue } from '../../lib/catalogue';
-import { comunicadosFor } from '../../lib/comunicados';
+import { fogosOptions } from '../../lib/catalogue';
+import { comunicadosFor, quakesAround } from '../../lib/comunicados';
 import { comunicadoRows, energyJ, latencyLabel, MOHO, sourceRows, TNT_TONNE_J } from '../../lib/detail';
 import { workerEnv } from '../../lib/env';
 import {
@@ -10,7 +10,7 @@ import {
 } from '../../lib/format';
 import { parseQuakeRef, quakePath, quakeUrl } from '../../lib/links';
 import { REGION_NAME, TIMEZONE, TIMEZONE_NAME } from '../../lib/region';
-import { assign } from '../../lib/sources/comunicados';
+import { assign, matchScore } from '../../lib/sources/comunicados';
 import { fogosDetail } from '../../lib/sources/fogos';
 import type { EarthquakeDetail } from '../../lib/types';
 
@@ -37,10 +37,10 @@ const year = new Date(t).getUTCFullYear();
 const place = placeName(q.place);
 const where = r === 'outro' ? place : `${place}, ${REGION_NAME[r]}`;
 const rows = sourceRows(q);
-// IPMA communiqués: each goes to its closest earthquake, so a swarm's
-// neighbours (from the catalogue) compete for it.
-const [catalogue, coms] = await Promise.all([getCachedCatalogue(workerEnv), comunicadosFor(q)]);
-const neighbours = catalogue.events.filter((x) => x.id !== q.id && Math.abs(Date.parse(x.time) - t) < 6e5);
+// IPMA communiqués: each goes to its closest earthquake, so the earthquakes
+// around this one (asked for only when something matches) compete for it.
+const coms = await comunicadosFor(q);
+const neighbours = coms.some((c) => matchScore(c, q) != null) ? await quakesAround(workerEnv, q) : [];
 const crows = comunicadoRows(q, assign(coms, [q, ...neighbours]).get(q.id) ?? []);
 const live = [...rows, ...crows].filter((x) => x.latencyMs != null);
 const E = q.magnitude != null ? energyJ(q.magnitude) : null;

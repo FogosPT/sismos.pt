@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fixture from './fixtures/comunicados.json';
-import { assign, cleanText, comunicados, editionDate, fixPubDate, matchScore, parseVersion, type Comunicado } from '../src/lib/sources/comunicados';
+import { assign, cleanText, comunicados, editionDate, matchScore, parseVersion, type Comunicado } from '../src/lib/sources/comunicados';
 
 type Fixture = Record<string, { id: string; versions: Parameters<typeof parseVersion>[1][] }>;
 const F = fixture as unknown as Fixture;
@@ -16,12 +16,11 @@ const summer = { id: 'summer', time: '2026-07-25T06:52:47.000Z', magnitude: 2.8 
 describe('comunicados', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('reads the edition date as UTC and fixes the archive pubDate', () => {
+  it('reads the edition date as UTC', () => {
     expect(editionDate('<small><em>Data de Edição:</em> <b>Sáb, 25 Jul 2026 06:55:46</b></small>')).toBe('2026-07-25T06:55:46.000Z');
     expect(editionDate(null)).toBeNull();
-    // Summer: the archive is 1 h early; winter: unchanged.
-    expect(fixPubDate('2026-07-25T05:55:46.000Z')).toBe('2026-07-25T06:55:46.000Z');
-    expect(fixPubDate('2026-11-20T17:43:42.000Z')).toBe('2026-11-20T17:43:42.000Z');
+    // Without the edition date, the archive's pubDate is taken as is.
+    expect(parseVersion('x', { versionNumber: 1, title: 'Aviso de Sismo no Continente 25-07-2026 07:52', pubDate: '2026-07-25T06:55:46.000Z' })!.published).toBe('2026-07-25T06:55:46.000Z');
   });
 
   it('parses title, zone, magnitude and text', () => {
@@ -79,5 +78,24 @@ describe('comunicados', () => {
     expect(urls.filter((u) => !u.includes('?')).map((u) => u.split('/').pop())).toEqual(['2026-11-20-aviso-sismo-sentido-continente-20-11']);
     expect(cs.map((c) => c.local).sort()).toEqual(['2026-11-19T13:53', '2026-11-20T08:58', '2026-11-20T17:36', '2026-11-20T17:37']);
     expect(urls[0]).toContain('category=sismologia');
+  });
+
+  it('follows the archive cursor down to the start of the range', async () => {
+    const items = Object.values(F)
+      .map((c) => ({ id: c.id, category: 'sismologia', title: c.versions[0].title, pubDate: c.versions[0].pubDate, versionCount: c.versions.length }))
+      .sort((a, b) => Date.parse(b.pubDate) - Date.parse(a.pubDate));
+    const pages: string[] = [];
+    vi.stubGlobal('fetch', async (u: string) => {
+      const url = new URL(u);
+      if (!url.search) return new Response(JSON.stringify(F[decodeURIComponent(url.pathname.split('/').pop()!)]));
+      const before = url.searchParams.get('before');
+      pages.push(before ?? '');
+      const page = items.filter((i) => !before || i.pubDate < before).slice(0, Number(url.searchParams.get('limit')));
+      return new Response(JSON.stringify({ items: page, nextBefore: page.length ? page.at(-1)!.pubDate : null }));
+    });
+    const cs = await comunicados(new Date('2026-11-19T00:00:00Z'), null, () => false, 2);
+    expect(cs.map((c) => c.local).sort()).toEqual(['2026-11-19T13:53', '2026-11-20T08:58', '2026-11-20T17:36', '2026-11-20T17:37']);
+    // Stops at the page that crosses the lower bound (the 01-11 entry), not at the end of the archive.
+    expect(pages).toHaveLength(2);
   });
 });
