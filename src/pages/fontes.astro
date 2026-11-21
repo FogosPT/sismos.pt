@@ -14,7 +14,13 @@ export const prerender = true;
     <p>
       O <a href="https://www.ipma.pt/pt/geofisica/sismicidade/">Instituto Português do Mar e da Atmosfera</a> é a autoridade sísmica nacional. Em território
       português, a localização, a magnitude e a informação sobre se o sismo foi sentido (intensidade e localidades) vêm do IPMA. Os dados abertos do IPMA só
-      guardam cerca de 30 dias; o sismos.pt arquiva-os.
+      guardam cerca de 30 dias; o sismos.pt arquiva-os. São atualizados uma vez por hora, por isso um sismo pode demorar até uma hora a chegar por esta via.
+    </p>
+    <h2>Comunicados do IPMA</h2>
+    <p>
+      Para os sismos mais fortes ou sentidos, o IPMA emite comunicados: um aviso automático poucos minutos depois do sismo e, se foi sentido, um aviso com a
+      intensidade e os concelhos. O sismos.pt lê-os do <a href="https://comunicados-ipma.vost.pt">arquivo de comunicados da VOST Portugal</a> e associa
+      cada um ao sismo pela hora local e pela magnitude. Aparecem na ficha do sismo e com a marca <svg class="ico sm" aria-label="comunicado"><use href="#i-comunicado" /></svg> nas listas.
     </p>
     <h2>EMSC</h2>
     <p>

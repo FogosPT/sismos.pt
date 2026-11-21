@@ -14,7 +14,9 @@ interface FichaData {
   nearKm?: number | null;
   nearBearing?: string | null;
   moho: number;
-  sources: { name: string; d: number | null; m: number | null; mt: string | null; latency: number | null; preferred: boolean }[];
+  /** Origin, local wall clock of the region. */
+  at: string;
+  sources: { name: string; d: number | null; m: number | null; mt: string | null; latency: number | null; at: string | null; preferred: boolean }[];
 }
 
 const el = document.getElementById('ficha-data');
@@ -76,12 +78,12 @@ function drawXsec(box: HTMLElement, f: FichaData) {
 
 /** When each catalogue reached sismos.pt, on a log time axis (live events only). */
 function drawTimeline(box: HTMLElement, f: FichaData) {
-  const rows = f.sources.filter((s) => s.latency != null);
+  const rows = f.sources.filter((s) => s.latency != null).sort((a, b) => (a.latency as number) - (b.latency as number));
   if (!rows.length) return;
   const W = Math.max(300, box.clientWidth || 600);
   const narrow = W < 560;
   const dmax = Math.max(36e5, ...rows.map((s) => s.latency as number));
-  const L = narrow ? 70 : 110;
+  const L = narrow ? 92 : 116;
   const x = scaleSymlog().constant(6e4).domain([0, dmax]).range([L, W - 20]);
   const rh = narrow ? 46 : 40;
   const H = (rows.length + 1) * rh + 36;
@@ -91,7 +93,7 @@ function drawTimeline(box: HTMLElement, f: FichaData) {
     svg.append('line').attr('x1', x(v)).attr('x2', x(v)).attr('y1', 8).attr('y2', H - 26).style('stroke', 'var(--grid)');
     svg.append('text').attr('x', x(v)).attr('y', H - 8).attr('text-anchor', 'middle').text(l);
   });
-  const all = [{ name: 'Origem', latency: 0, m: null as number | null, mt: null as string | null }, ...rows];
+  const all = [{ name: 'Origem', latency: 0, at: null as string | null, m: null as number | null, mt: null as string | null }, ...rows];
   all.forEach((s, k) => {
     const yy = 24 + k * rh;
     const xx = x(s.latency as number);
@@ -99,7 +101,7 @@ function drawTimeline(box: HTMLElement, f: FichaData) {
     if (k) svg.append('line').attr('x1', L).attr('x2', xx).attr('y1', yy).attr('y2', yy).style('stroke', 'var(--rule)');
     svg.append('circle').attr('cx', xx).attr('cy', yy).attr('r', k ? 5 : 4).style('fill', k ? 'var(--signal)' : 'var(--ink)');
     const right = xx > W * 0.62;
-    const label = k ? `+${latencyLabel(s.latency as number)} · M ${fmtMag(s.m)} ${s.mt ?? ''}` : 'o sismo ocorre';
+    const label = k ? `+${latencyLabel(s.latency as number)}${s.at ? ` (${s.at})` : ''} · M ${fmtMag(s.m)} ${s.mt ?? ''}` : `o sismo ocorre (${f.at})`;
     svg.append('text').attr('class', 'val').attr('x', right ? xx - 10 : xx + 10).attr('y', yy + (narrow ? 18 : 4)).attr('text-anchor', right ? 'end' : 'start').text(label);
   });
   box.replaceChildren(svg.node()!);

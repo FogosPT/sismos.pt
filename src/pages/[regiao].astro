@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro';
 import QuakeData from '../components/QuakeData.astro';
 import { getCachedCatalogue } from '../lib/catalogue';
+import { recentComunicados } from '../lib/comunicados';
+import { assign } from '../lib/sources/comunicados';
 import { workerEnv } from '../lib/env';
 import { dayMonth, depthShort, feltLocal, fmtMag, hm, nearText, placeName, relative } from '../lib/format';
 import { REGION_NAME, TIMEZONE_NAME } from '../lib/region';
@@ -15,9 +17,11 @@ if (!REGIONS.includes(r)) {
   return new Response(null, { status: 404 });
 }
 
-const catalogue = await getCachedCatalogue(workerEnv);
+const [catalogue, coms] = await Promise.all([getCachedCatalogue(workerEnv), recentComunicados()]);
 const now = Date.parse(catalogue.fetchedAt);
 const { events, largest, felt } = regionSummary(catalogue.events, r, now);
+// Assigned against every earthquake, not only this region's, so a communiqué goes to its closest one.
+const withCom = assign(coms, catalogue.events);
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=60');
 
@@ -84,6 +88,7 @@ const hasVolcanoes = volcanoesIn(r).length > 0;
               </span>
               <span class="qd">
                 {q.felt && <svg class="ico sm felt" aria-label="sentido"><use href="#i-sentido" /></svg>}
+                {withCom.has(q.id) && <svg class="ico sm com" aria-label="com comunicado do IPMA"><title>Comunicado do IPMA</title><use href="#i-comunicado" /></svg>}
                 <svg class="ico sm" aria-hidden="true"><use href="#i-profundidade" /></svg>{depthShort(q.depth)}
               </span>
             </Row>

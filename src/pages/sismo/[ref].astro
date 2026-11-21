@@ -1,14 +1,16 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { edgeCached } from '../../lib/cache';
-import { fogosOptions } from '../../lib/catalogue';
-import { energyJ, latencyLabel, MOHO, sourceRows, TNT_TONNE_J } from '../../lib/detail';
+import { fogosOptions, getCachedCatalogue } from '../../lib/catalogue';
+import { comunicadosFor } from '../../lib/comunicados';
+import { comunicadoRows, energyJ, latencyLabel, MOHO, sourceRows, TNT_TONNE_J } from '../../lib/detail';
 import { workerEnv } from '../../lib/env';
 import {
   capitalise, dayMonth, depthKnown, depthLong, depthShort, feltLocal, fmtMag, hm, magTypeLabel, NEAR_MAX_KM, nearText, num, placeLabel, placeName, SOURCE_NAME,
 } from '../../lib/format';
 import { parseQuakeRef, quakePath, quakeUrl } from '../../lib/links';
 import { REGION_NAME, TIMEZONE, TIMEZONE_NAME } from '../../lib/region';
+import { assign } from '../../lib/sources/comunicados';
 import { fogosDetail } from '../../lib/sources/fogos';
 import type { EarthquakeDetail } from '../../lib/types';
 
@@ -35,7 +37,12 @@ const year = new Date(t).getUTCFullYear();
 const place = placeName(q.place);
 const where = r === 'outro' ? place : `${place}, ${REGION_NAME[r]}`;
 const rows = sourceRows(q);
-const live = rows.filter((x) => x.latencyMs != null);
+// IPMA communiqués: each goes to its closest earthquake, so a swarm's
+// neighbours (from the catalogue) compete for it.
+const [catalogue, coms] = await Promise.all([getCachedCatalogue(workerEnv), comunicadosFor(q)]);
+const neighbours = catalogue.events.filter((x) => x.id !== q.id && Math.abs(Date.parse(x.time) - t) < 6e5);
+const crows = comunicadoRows(q, assign(coms, [q, ...neighbours]).get(q.id) ?? []);
+const live = [...rows, ...crows].filter((x) => x.latencyMs != null);
 const E = q.magnitude != null ? energyJ(q.magnitude) : null;
 const usgs = q.sources?.usgs?.extra as Record<string, any> | undefined;
 const mag = q.magnitude == null ? 'magnitude por rever' : `magnitude ${fmtMag(q.magnitude)}`;
@@ -66,7 +73,11 @@ const data = {
   nearKm: (q.nearest ?? q.nearestPlaces?.[0])?.km ?? null,
   nearBearing: (q.nearest ?? q.nearestPlaces?.[0])?.bearing ?? null,
   moho: MOHO[r],
-  sources: rows.map((x) => ({ name: SOURCE_NAME[x.name] ?? x.name.toUpperCase(), d: x.report.depth, m: x.report.magnitude, mt: x.magType, latency: x.latencyMs, preferred: x.preferred })),
+  at: localTime,
+  sources: [
+    ...rows.map((x) => ({ name: SOURCE_NAME[x.name] ?? x.name.toUpperCase(), d: x.report.depth, m: x.report.magnitude, mt: x.magType, latency: x.latencyMs, at: x.seenAt != null ? hm(x.seenAt, r) : null, preferred: x.preferred })),
+    ...crows.map((x) => ({ name: x.c.felt ? 'Aviso sentido' : 'Aviso IPMA', d: null, m: x.c.magnitude, mt: x.c.magnitude != null ? 'ML' : null, latency: x.latencyMs, at: hm(x.publishedAt, r), preferred: false })),
+  ],
 };
 ---
 
@@ -114,7 +125,16 @@ const data = {
                 <td>{fmtMag(x.report.magnitude)} <small>{x.magType ?? ''}</small></td>
                 <td>{depthShort(x.report.depth)}</td>
                 <td>{x.preferred ? '—' : `${x.dtSeconds >= 0 ? '+' : '−'}${num(Math.abs(x.dtSeconds), 1)} s · ${num(x.km, 0)} km`}</td>
-                <td>{x.latencyMs != null ? `+${latencyLabel(x.latencyMs)}` : '—'}</td>
+                <td>{x.latencyMs != null && x.seenAt != null ? <>+{latencyLabel(x.latencyMs)} <small>{hm(x.seenAt, r)}</small></> : '—'}</td>
+              </tr>
+            ))}
+            {crows.map((x) => (
+              <tr>
+                <th scope="row"><a href={x.c.url}>IPMA</a> <small>{x.c.felt ? 'comunicado · sentido' : 'comunicado'}</small></th>
+                <td>{fmtMag(x.c.magnitude)} <small>{x.c.magnitude != null ? 'ML' : ''}</small></td>
+                <td>—</td>
+                <td>—</td>
+                <td>{x.latencyMs != null ? <>+{latencyLabel(x.latencyMs)} <small>{hm(x.publishedAt, r)}</small></> : <small>{dayMonth(x.publishedAt, r)} {hm(x.publishedAt, r)}</small>}</td>
               </tr>
             ))}
           </tbody>
@@ -122,10 +142,30 @@ const data = {
         {live.length > 0 && <div class="tl" id="tl"></div>}
         <p class="note">
           A solução de referência é a do {SOURCE_NAME[q.preferredSource ?? 'ipma'] ?? q.preferredSource}. "Diferença" é a diferença de hora de origem e de localização do
-          epicentro em relação a ela. {live.length > 0 ? '"Publicado" é quanto tempo depois do sismo o sismos.pt recebeu cada relato.' : 'Este sismo foi importado depois de ocorrer, por isso não há tempos de publicação.'}
+          epicentro em relação a ela. {live.length > 0 ? `"Publicado" é quanto tempo depois do sismo o sismos.pt recebeu cada relato, e a que horas (${TIMEZONE_NAME[r]}). Nos comunicados do IPMA conta a hora de edição.` : 'Este sismo foi importado depois de ocorrer, por isso não há tempos de publicação.'}
         </p>
       </div>
     </section>
+
+    {
+      crows.length > 0 && (
+        <section class="fsec">
+          <h2><svg class="ico"><use href="#i-comunicado" /></svg>Comunicados do IPMA</h2>
+          <div>
+            <ol class="coms">
+              {crows.map((x) => (
+                <li>
+                  <p class="cmeta"><time datetime={x.c.published}>{dayMonth(x.publishedAt, r)} · {hm(x.publishedAt, r)}</time>{x.latencyMs != null && ` · ${latencyLabel(x.latencyMs)} depois do sismo`}</p>
+                  <h3><a href={x.c.url}>{x.c.title}</a></h3>
+                  {x.c.text && <p>{x.c.text}</p>}
+                </li>
+              ))}
+            </ol>
+            <p class="note">Comunicados de sismologia do IPMA, através do <a href="https://comunicados-ipma.vost.pt">arquivo da VOST Portugal</a>. A hora no título é a hora local do sismo, ao minuto, e a magnitude é preliminar.</p>
+          </div>
+        </section>
+      )
+    }
 
     <section class="fsec">
       <h2><svg class="ico"><use href="#i-epicentro" /></svg>Onde</h2>
