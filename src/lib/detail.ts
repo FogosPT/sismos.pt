@@ -1,5 +1,6 @@
 import { distanceKm } from './geo-math';
 import { magType } from './sources/http';
+import type { Comunicado } from './sources/comunicados';
 import type { EarthquakeDetail, SourceReport } from './types';
 
 /** Display order of catalogues on the page. */
@@ -21,8 +22,12 @@ export interface SourceRow {
   km: number;
   /** How long after the origin we first saw it, ms; null when not live. */
   latencyMs: number | null;
+  /** When we first saw it (epoch ms); null when not live. */
+  seenAt: number | null;
   preferred: boolean;
 }
+
+const live = (ms: number | null): ms is number => ms != null && ms >= 0 && ms < LIVE_LATENCY_MS;
 
 export function sourceRows(q: EarthquakeDetail): SourceRow[] {
   const t0 = Date.parse(q.time);
@@ -36,10 +41,27 @@ export function sourceRows(q: EarthquakeDetail): SourceRow[] {
         magType: magType(r.magType),
         dtSeconds: (Date.parse(r.time) - t0) / 1000,
         km: distanceKm(q.lat, q.lon, r.lat, r.lon),
-        latencyMs: seen != null && seen >= 0 && seen < LIVE_LATENCY_MS ? seen : null,
+        latencyMs: live(seen) ? seen : null,
+        seenAt: live(seen) ? Date.parse(r.firstSeenAt!) : null,
         preferred: name === q.preferredSource,
       };
     });
+}
+
+export interface ComunicadoRow {
+  c: Comunicado;
+  /** Issued this long after the origin, ms; null when implausible (before it, or days later). */
+  latencyMs: number | null;
+  publishedAt: number;
+}
+
+/** IPMA communiqués matched to this earthquake, oldest first. */
+export function comunicadoRows(q: Pick<EarthquakeDetail, 'time'>, cs: Comunicado[]): ComunicadoRow[] {
+  const t0 = Date.parse(q.time);
+  return cs.map((c) => {
+    const publishedAt = Date.parse(c.published);
+    return { c, publishedAt, latencyMs: live(publishedAt - t0) ? publishedAt - t0 : null };
+  });
 }
 
 /** log10 E[J] = 1.5 M + 4.8 (Gutenberg & Richter). */
