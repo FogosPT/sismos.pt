@@ -177,7 +177,7 @@ const data = {
         <dialog class="locdlg" id="locdialog" aria-label={`Localização do epicentro: ${where}`}>
           <div class="locdlg-head">
             <span class="locdlg-title">{where}</span>
-            <a href={`https://www.openstreetmap.org/?mlat=${q.lat}&mlon=${q.lon}#map=11/${q.lat}/${q.lon}`} target="_blank" rel="noopener noreferrer">abrir no OpenStreetMap</a>
+            <a href={`https://www.openstreetmap.org/?mlat=${q.lat}&mlon=${q.lon}#map=11/${q.lat}/${q.lon}`}>abrir no OpenStreetMap</a>
             <button type="button" class="iconbtn" id="locclose" aria-label="Fechar">✕</button>
           </div>
           <div id="locmap" class="locmap"></div>
